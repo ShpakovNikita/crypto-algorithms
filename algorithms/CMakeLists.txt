@@ -5,7 +5,6 @@ function(buildAlgorithm ALGO_NAME)
     
     file(GLOB_RECURSE HEADERS ${ALGO_FOLDER}/*.hpp ${ALGO_FOLDER}/*.h)
 	file(GLOB SOURCE *.cpp ${HEADERS} ${ALGO_FOLDER}/*.cpp)
-	SET(MAIN_CPP ${ALGO_FOLDER}/main.cpp)
     
     add_executable(${ALGO_NAME} ${SOURCE})
     
