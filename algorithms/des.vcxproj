@@ -312,6 +312,8 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="E:\moip_labs\algorithms\des\des_encrypter.cpp" />
+    <ClInclude Include="E:\moip_labs\algorithms\des\des_encrypter.hpp" />
     <ClCompile Include="E:\moip_labs\algorithms\des\main.cpp" />
   </ItemGroup>
   <ItemGroup>
