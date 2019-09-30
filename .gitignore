@@ -18,6 +18,8 @@ _deps
 
 *.vcxproj.filters
 *.vcxproj
+*.vcxproj.user
+*.dir
 
 # User-specific files
 *.rsuser
