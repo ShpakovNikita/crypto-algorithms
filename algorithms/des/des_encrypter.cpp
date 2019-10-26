@@ -163,9 +163,9 @@ namespace _bit_utils
 	}
 
 	template <uint32_t bytes_count>
-	static std::bitset<bytes_count* CHAR_BIT> bytes_to_bitset(uint8_t* data)
+	static std::bitset<bytes_count * CHAR_BIT> bytes_to_bitset(uint8_t* data)
 	{
-		std::bitset<bytes_count* CHAR_BIT> bitset;
+		std::bitset<bytes_count * CHAR_BIT> bitset;
 
 		for (uint64_t i = 0; i < bytes_count; ++i)
 		{
@@ -184,9 +184,9 @@ namespace _bit_utils
 	}
 
 	template <uint32_t bytes_count>
-	static std::string_view bitset_to_bytes(const std::bitset<bytes_count* CHAR_BIT>& data)
+	static std::string bitset_to_bytes(const std::bitset<bytes_count * CHAR_BIT>& data)
 	{
-		std::string_view bytes;
+		std::string bytes;
 
 		for (uint64_t i = 0; i < bytes_count; ++i)
 		{
@@ -195,15 +195,15 @@ namespace _bit_utils
 
 			for (uint64_t bit = 0; bit < CHAR_BIT; ++bit)
 			{
-				uint8_t selected_bit = (data[offset] & 1) >> bit;
-				++offset;
+                // default bitset conversion inversed, because of that we have to flip values
+				uint8_t selected_bit = (data[offset + bit] & 1) << (CHAR_BIT - bit - 1);
 				current_byte |= selected_bit;
 			}
-
-			bytes += current_byte;
+            
+            bytes += current_byte;
 		}
-
-		return bitset;
+        
+		return bytes;
 	}
 
 	template <uint32_t bytes_count, uint32_t slices_count = 2>
@@ -212,15 +212,17 @@ namespace _bit_utils
 	{
 		constexpr uint64_t split_size = bytes_count * CHAR_BIT / slices_count;
 		std::vector<std::bitset<split_size>> slices;
-		// TODO: slices.reserve()
+        slices.reserve(slices_count);
 
 		for (uint64_t i = 0; i < split_size; ++i)
 		{
-			left[i] = data[i];
-			right[i] = data[i + split_size];
+            for (uint64_t j = 0; j < slices_count; ++j)
+            {
+                slices[j][i] = data[j * split_size + i];
+            }
 		}
 
-		return { left, right };
+		return slices;
 	}
 
 	template <uint32_t bytes_count>
@@ -339,7 +341,8 @@ std::string des_encrypter::_internal_run(const std::string& message, _e_action a
 
 	for (const auto& block : source_blocks)
 	{
-		result_blocks.push_back(std::move(_encrypt_block(block, action)));
+        auto&& encrypted_block = _encrypt_block(block, action);
+		result_blocks.push_back(std::move(encrypted_block));
 	}
 	
 	std::string result_message;
@@ -347,7 +350,8 @@ std::string des_encrypter::_internal_run(const std::string& message, _e_action a
 	
 	for (const auto& block : result_blocks)
 	{
-		result_message += block.to_string();
+		result_message += _bit_utils::bitset_to_bytes<BLOCK_SIZE>(block);
+        auto conv_bts = _bit_utils::bytes_to_bitset<BLOCK_SIZE>(_bit_utils::stob(result_message));
 	}
 
 	return result_message;
@@ -357,7 +361,7 @@ std::bitset<BLOCK_SIZE* CHAR_BIT> des_encrypter::_encrypt_block(const std::strin
 {
 	auto bitset_block = _bit_utils::bytes_to_bitset<BLOCK_SIZE>(_bit_utils::stob(block));
 	auto permutated_block = _bit_utils::perform_permutations<BLOCK_SIZE, BLOCK_SIZE>(bitset_block, PI);
-
+    
 	auto pair = _bit_utils::split_bitset<BLOCK_SIZE>(permutated_block);
 	auto left = pair[0], right = pair[1];
 
@@ -380,9 +384,9 @@ std::bitset<BLOCK_SIZE* CHAR_BIT> des_encrypter::_encrypt_block(const std::strin
 		}
 
 		auto new_right_xor = _generated_keys[key_index] ^ right_e;
-		// auto new_right_subs = substitude
+        auto new_right_subs = _substitude_block(new_right_xor);
 		auto new_right_permutated =
-			_bit_utils::perform_permutations<(BLOCK_SIZE - 2), BLOCK_SIZE / 2>(new_right_xor /*subs*/, P);
+			_bit_utils::perform_permutations<BLOCK_SIZE / 2, BLOCK_SIZE / 2>(new_right_subs, P);
 		auto result_new_right = left ^ new_right_permutated;
 
 
@@ -391,16 +395,29 @@ std::bitset<BLOCK_SIZE* CHAR_BIT> des_encrypter::_encrypt_block(const std::strin
 	}
 
 	auto merged_bitset = _bit_utils::merge_bitset<BLOCK_SIZE>(right, left);
-	auto result_block = _bit_utils::perform_permutations<BLOCK_SIZE, BLOCK_SIZE>(bitset_block, PI_1);
+	auto result_block = _bit_utils::perform_permutations<BLOCK_SIZE, BLOCK_SIZE>(merged_bitset, PI_1);
 
 	return result_block;
 }
 
-std::bitset<BLOCK_SIZE* CHAR_BIT> des_encrypter::_substitude_block(const std::string& block)
+std::bitset<BLOCK_SIZE * CHAR_BIT / 2> des_encrypter::_substitude_block(const std::bitset<(BLOCK_SIZE - 2) * CHAR_BIT>& block)
 {
-
-
-	return {};
+    std::bitset<BLOCK_SIZE * CHAR_BIT / 2> result_subs;
+    auto subblocks = _bit_utils::split_bitset<(BLOCK_SIZE - 2), BLOCK_SIZE>(block);
+    for (uint64_t i = 0; i < CHAR_BIT; ++i)
+    {
+        auto &block = subblocks[i];
+        uint64_t row = 0b10 * block[0] + 0b01 * block[5];
+        uint64_t col = 0b1000 * block[1] + 0b0100 * block[2] + 0b0010 * block[3] + 0b0001 * block[4];
+        auto val = std::bitset<BLOCK_SIZE / 2>(S_BOX[i][row][col]);
+        for (uint64_t j = 0; j < BLOCK_SIZE / 2; ++j)
+        {
+            // default bitset conversion inversed, because of that we have to flip values
+            result_subs[i * BLOCK_SIZE / 2 + j] = val[BLOCK_SIZE / 2 - j - 1];
+        }
+    }
+    
+	return result_subs;
 }
 
 const char* des_encrypter::invalid_key::what() const throw ()

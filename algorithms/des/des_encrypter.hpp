@@ -40,7 +40,7 @@ private:
 	std::string _internal_run(const std::string& message, _e_action action);
 
 	std::bitset<BLOCK_SIZE * CHAR_BIT> _encrypt_block(const std::string& block, _e_action action);
-	std::bitset<BLOCK_SIZE* CHAR_BIT> _substitude_block(const std::string& block);
+	std::bitset<BLOCK_SIZE * CHAR_BIT / 2> _substitude_block(const std::bitset<(BLOCK_SIZE - 2) * CHAR_BIT>& block);
 
 	std::string _key;
 	std::vector<std::bitset<(BLOCK_SIZE - 2) * CHAR_BIT>> _generated_keys;
