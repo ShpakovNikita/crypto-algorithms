@@ -20,6 +20,7 @@ _deps
 *.vcxproj
 *.vcxproj.user
 *.dir
+*.sln
 
 # User-specific files
 *.rsuser

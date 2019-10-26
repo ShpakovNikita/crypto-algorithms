@@ -1,12 +1,163 @@
 #include "des_encrypter.hpp"
+#include <string>
 
-#define BIT_PERMUT(a, b, c) (((a[(b) / 8] >> (7 - (b % 8))) & 0x01) << (c))
-#define BIT_PERMUT_INTR(a, b, c) ((((a) >> (31 - (b))) & 0x00000001) << (c))
-#define BIT_PERMUT_INTL(a, b, c) ((((a) << (b)) & 0x80000000) >> (c))
-#define SBOX_PERMUT_BIT(a) (((a) & 0x20) | (((a) & 0x1f) >> 1) | (((a) & 0x01) << 4))
-
-constexpr uint32_t BLOCK_SIZE = 8;
 constexpr uint32_t ROUNDS_COUNT = 16;
+
+// initial permutations made on the key
+const std::vector<uint8_t> CP_1 = 
+{ 
+	57, 49, 41, 33, 25, 17, 9,
+	1, 58, 50, 42, 34, 26, 18,
+	10, 2, 59, 51, 43, 35, 27,
+	19, 11, 3, 60, 52, 44, 36,
+	63, 55, 47, 39, 31, 23, 15,
+	7, 62, 54, 46, 38, 30, 22,
+	14, 6, 61, 53, 45, 37, 29,
+	21, 13, 5, 28, 20, 12, 4,
+};
+
+// permutations applied on shifted key to get Ki + 1
+const std::vector<uint8_t> CP_2 =
+{
+	14, 17, 11, 24, 1, 5, 3, 28,
+	15, 6, 21, 10, 23, 19, 12, 4,
+	26, 8, 16, 7, 27, 20, 13, 2,
+	41, 52, 31, 37, 47, 55, 30, 40,
+	51, 45, 33, 48, 44, 49, 39, 56,
+	34, 53, 46, 42, 50, 36, 29, 32,
+};
+
+// expand matrix to get a 48bits matrix of data to apply the xor with Ki
+const std::vector<uint8_t> E =
+{
+	32, 1, 2, 3, 4, 5,
+	4, 5, 6, 7, 8, 9,
+	8, 9, 10, 11, 12, 13,
+	12, 13, 14, 15, 16, 17,
+	16, 17, 18, 19, 20, 21,
+	20, 21, 22, 23, 24, 25,
+	24, 25, 26, 27, 28, 29,
+	28, 29, 30, 31, 32, 1,
+};
+
+// matrix that determine the shift for each round of keys
+const std::vector<uint8_t> SHIFT = { 1, 1, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 1 };
+
+namespace _bit_utils
+{
+	template <uint32_t initial_bytes_count, uint32_t output_bytes_count>
+	static std::bitset<output_bytes_count* CHAR_BIT> perform_permutations(
+		const std::bitset<initial_bytes_count* CHAR_BIT>& data, const std::vector<uint8_t>& table)
+	{
+		std::bitset<output_bytes_count* CHAR_BIT> permutated_bits;
+
+		for (uint64_t i = 0; i < permutated_bits.size(); ++i)
+		{
+			permutated_bits[i] = data[table[i] - 1];
+		}
+
+		return permutated_bits;
+	}
+
+	template <uint32_t bytes_count>
+	static std::bitset<bytes_count* CHAR_BIT> bytes_to_bitset(uint8_t* data)
+	{
+		std::bitset<bytes_count* CHAR_BIT> bitset;
+
+		for (uint64_t i = 0; i < bytes_count; ++i)
+		{
+			uint8_t current_byte = data[i];
+			uint64_t offset = i * CHAR_BIT;
+
+			for (uint64_t bit = 0; bit < CHAR_BIT; ++bit)
+			{
+				uint64_t byte_offset = CHAR_BIT - bit - 1;
+				bitset[offset + byte_offset] = current_byte & 1;
+				current_byte >>= 1;
+			}
+		}
+
+		return bitset;
+	}
+
+	template <uint32_t bytes_count>
+	static std::string_view bitset_to_bytes(const std::bitset<bytes_count* CHAR_BIT>& data)
+	{
+		std::string_view bytes;
+
+		for (uint64_t i = 0; i < bytes_count; ++i)
+		{
+			uint8_t current_byte = 0x0;
+			uint64_t offset = i * CHAR_BIT;
+
+			for (uint64_t bit = 0; bit < CHAR_BIT; ++bit)
+			{
+				uint8_t selected_bit = (data[offset] & 1) >> bit;
+				++offset;
+				current_byte |= selected_bit;
+			}
+
+			bytes += current_byte;
+		}
+
+		return bitset;
+	}
+
+	template <uint32_t bytes_count>
+	static std::tuple<std::bitset<bytes_count * CHAR_BIT / 2>, 
+		std::bitset<bytes_count* CHAR_BIT / 2>> split_bitset(
+			const std::bitset<bytes_count * CHAR_BIT>& data)
+	{
+		constexpr uint64_t split_size = bytes_count * CHAR_BIT / 2;
+		std::bitset<split_size> left, right;
+		for (uint64_t i = 0; i < split_size; ++i)
+		{
+			left[i] = data[i];
+			right[i] = data[i + split_size];
+		}
+
+		return std::make_tuple(left, right);
+	}
+
+	template <uint32_t bytes_count>
+	static std::bitset<bytes_count * CHAR_BIT> merge_bitset(
+		const std::bitset<bytes_count * CHAR_BIT / 2>& left,
+		const std::bitset<bytes_count * CHAR_BIT / 2>& right)
+	{
+		constexpr uint64_t split_size = bytes_count * CHAR_BIT / 2;
+		std::bitset<bytes_count * CHAR_BIT> merged_bitset;
+		for (uint64_t i = 0; i < split_size; ++i)
+		{
+			merged_bitset[i] = left[i];
+			merged_bitset[i + split_size] = right[i];
+		}
+
+		return merged_bitset;
+	}
+
+	template <uint32_t bits_count>
+	static std::bitset<bits_count> shift_bitset_cyclic(const std::bitset<bits_count>& data, uint8_t offset)
+	{
+		std::bitset<bits_count> output_data(data);
+		for (uint64_t i = 0; i < bits_count - offset; ++i)
+		{
+			output_data[i] = data[i + offset];
+		}
+
+		uint64_t start_pos = bits_count - offset;
+		for (uint64_t i = 0; i < offset; ++i)
+		{
+			output_data[start_pos + i] = data[i];
+		}
+
+		return output_data;
+	}
+
+	uint8_t* stob(const std::string& str)
+	{
+		return reinterpret_cast<uint8_t*>(const_cast<char*>(str.data()));
+	}
+}
 
 
 des_encrypter::des_encrypter(const std::string& key)
@@ -50,54 +201,27 @@ std::string des_encrypter::_check_key(const std::string& key)
 
 std::string des_encrypter::_construct_padding_message(const std::string& message)
 {
-	uint8_t padding_len = BLOCK_SIZE - message.size() % BLOCK_SIZE;
-	return message + std::string(padding_len, char(padding_len));
+	uint8_t padding_len = (BLOCK_SIZE - message.size()) % BLOCK_SIZE;
+	return message + std::string(padding_len, padding_len);
 }
 
 void des_encrypter::_generate_keys()
 {
-	_generated_keys.resize(ROUNDS_COUNT, std::string(BLOCK_SIZE - 2, '*'));
+	_generated_keys.reserve(ROUNDS_COUNT);
 
-	uint32_t C = 0, D = 0;
+	auto key = _bit_utils::bytes_to_bitset<BLOCK_SIZE>(_bit_utils::stob(_key));
+	auto permutated_key = _bit_utils::perform_permutations<BLOCK_SIZE, (BLOCK_SIZE - 1)>(key, CP_1);
+	auto [left, right] = _bit_utils::split_bitset<(BLOCK_SIZE - 1)>(permutated_key);
 
-	uint32_t key_rnd_shift[16] = { 1,1,2,2,2,2,2,2,1,2,2,2,2,2,2,1 };
-	uint32_t key_perm_c[28] = { 
-		56,48,40,32,24,16,8,0,57,49,41,33,25,17,
-		9,1,58,50,42,34,26,18,10,2,59,51,43,35 
-	};
-	uint32_t key_perm_d[28] = {
-		62,54,46,38,30,22,14,6,61,53,45,37,29,21,
-		13,5,60,52,44,36,28,20,12,4,27,19,11,3 
-	};
-	uint32_t key_compression[48] = { 
-		13,16,10,23,0,4,2,27,14,5,20,9,
-		22,18,11,3,25,7,15,6,26,19,12,1,
-		40,51,30,36,46,54,29,39,50,44,32,47,
-		43,48,38,55,33,52,45,41,49,35,28,31 
-	};
+	for (uint64_t i = 0; i < ROUNDS_COUNT; ++i)
+	{
+		left = _bit_utils::shift_bitset_cyclic<(BLOCK_SIZE - 1) * CHAR_BIT / 2>(left, SHIFT[i]);
+		right = _bit_utils::shift_bitset_cyclic<(BLOCK_SIZE - 1) * CHAR_BIT / 2>(right, SHIFT[i]);
 
-	char* key = _key.data();
-
-	for (uint32_t i = 0, j = 31, C = 0; i < 28; ++i, --j)
-		C |= BIT_PERMUT(key, key_perm_c[i], j);
-
-	for (uint32_t i = 0, j = 31, D = 0; i < 28; ++i, --j)
-		D |= BIT_PERMUT(key, key_perm_d[i], j);
-
-	for (uint32_t i = 0; i < ROUNDS_COUNT; ++i) {
-		C = ((C << key_rnd_shift[i]) | (C >> (28 - key_rnd_shift[i]))) & 0xfffffff0;
-		D = ((D << key_rnd_shift[i]) | (D >> (28 - key_rnd_shift[i]))) & 0xfffffff0;
-
-		uint32_t to_gen = i;
-
-		for (uint32_t j = 0; j < 6; ++j)
-			_generated_keys[to_gen][j] = 0;
-
-		for (uint32_t j = 0; j < 24; ++j)
-			_generated_keys[to_gen][j / 8] |= BIT_PERMUT_INTR(C, key_compression[j], 7 - (j % 8));
-
-		for (uint32_t j = 0; j < 48; ++j)
-			_generated_keys[to_gen][j / 8] |= BIT_PERMUT_INTR(D, key_compression[j] - 28, 7 - (j % 8));
+		auto merged_bitset = _bit_utils::merge_bitset<(BLOCK_SIZE - 1)>(left, right);
+		auto generated_key_bitset = _bit_utils::perform_permutations<(BLOCK_SIZE - 1), (BLOCK_SIZE - 2)>(
+			merged_bitset, CP_2);
+		_generated_keys.push_back(std::move(generated_key_bitset));
 	}
 }
 
@@ -105,15 +229,30 @@ std::string des_encrypter::_internal_run(const std::string& message, _e_action a
 {
 	std::string message_to_process = _construct_padding_message(message);
 	std::vector<std::string> source_blocks = _build_message_blocks(message_to_process);
-	std::vector<std::string> result_blocks;
+	std::vector<std::bitset<BLOCK_SIZE * CHAR_BIT>> result_blocks;
 	result_blocks.reserve(source_blocks.size());
 
 	for (const auto& block : source_blocks)
 	{
-
+		result_blocks.push_back(std::move(_encrypt_block(block, action)));
+	}
+	
+	std::string result_message;
+	result_message.reserve(BLOCK_SIZE * result_blocks.size());
+	
+	for (const auto& block : result_blocks)
+	{
+		result_message += block.to_string();
 	}
 
-	return message_to_process;
+	return result_message;
+}
+
+std::bitset<BLOCK_SIZE* CHAR_BIT> des_encrypter::_encrypt_block(const std::string& block, _e_action action)
+{
+	auto bitset_block = _bit_utils::bytes_to_bitset<BLOCK_SIZE>(_bit_utils::stob(block));
+
+	return bitset_block;
 }
 
 const char* des_encrypter::invalid_key::what() const throw ()
