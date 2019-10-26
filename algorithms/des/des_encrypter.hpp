@@ -19,10 +19,16 @@ public:
 	std::string decrypt(const std::string& message);
 
 private:
+	struct invalid_action : public std::exception
+	{
+		const char* what() const throw ();
+	};
+
 	enum class _e_action
 	{
 		encrypt = 0,
 		decrypt,
+		undefined,
 	};
 
 	static std::vector<std::string> _build_message_blocks(const std::string& message);

@@ -3,6 +3,18 @@
 
 constexpr uint32_t ROUNDS_COUNT = 16;
 
+// initial permutations matrix for the data
+const std::vector<uint8_t> PI = {
+	58, 50, 42, 34, 26, 18, 10, 2,
+	60, 52, 44, 36, 28, 20, 12, 4,
+	62, 54, 46, 38, 30, 22, 14, 6,
+	64, 56, 48, 40, 32, 24, 16, 8,
+	57, 49, 41, 33, 25, 17, 9, 1,
+	59, 51, 43, 35, 27, 19, 11, 3,
+	61, 53, 45, 37, 29, 21, 13, 5,
+	63, 55, 47, 39, 31, 23, 15, 7,
+};
+
 // initial permutations made on the key
 const std::vector<uint8_t> CP_1 = 
 { 
@@ -38,6 +50,27 @@ const std::vector<uint8_t> E =
 	20, 21, 22, 23, 24, 25,
 	24, 25, 26, 27, 28, 29,
 	28, 29, 30, 31, 32, 1,
+};
+
+// final permutations for data after the 16 rounds
+const std::vector<uint8_t> PI_1 = {
+	40, 8, 48, 16, 56, 24, 64, 32,
+	39, 7, 47, 15, 55, 23, 63, 31,
+	38, 6, 46, 14, 54, 22, 62, 30,
+	37, 5, 45, 13, 53, 21, 61, 29,
+	36, 4, 44, 12, 52, 20, 60, 28,
+	35, 3, 43, 11, 51, 19, 59, 27,
+	34, 2, 42, 10, 50, 18, 58, 26,
+	33, 1, 41, 9, 49, 17, 57, 25,
+};
+
+// permutations made after each SBox substitution for each round
+const std::vector<uint8_t> P =
+{
+	16, 7, 20, 21, 29, 12, 28, 17,
+	1, 15, 23, 26, 5, 18, 31, 10,
+	2, 8, 24, 14, 32, 27, 3, 9,
+	19, 13, 30, 6, 22, 11, 4, 25,
 };
 
 // matrix that determine the shift for each round of keys
@@ -251,11 +284,51 @@ std::string des_encrypter::_internal_run(const std::string& message, _e_action a
 std::bitset<BLOCK_SIZE* CHAR_BIT> des_encrypter::_encrypt_block(const std::string& block, _e_action action)
 {
 	auto bitset_block = _bit_utils::bytes_to_bitset<BLOCK_SIZE>(_bit_utils::stob(block));
+	auto permutated_block = _bit_utils::perform_permutations<BLOCK_SIZE, BLOCK_SIZE>(bitset_block, PI);
 
-	return bitset_block;
+	auto& [left, right] = _bit_utils::split_bitset<BLOCK_SIZE>(permutated_block);
+
+	for (uint64_t i = 0; i < ROUNDS_COUNT; ++i)
+	{
+		auto right_e = _bit_utils::perform_permutations<BLOCK_SIZE / 2, (BLOCK_SIZE - 2)>(right, E);
+
+		uint64_t key_index = 0;
+		switch (action)
+		{
+		case des_encrypter::_e_action::encrypt:
+			key_index = i;
+			break;
+		case des_encrypter::_e_action::decrypt:
+			key_index = ROUNDS_COUNT - i - 1;
+			break;
+		default:
+			throw invalid_action();
+			break;
+		}
+
+		auto new_right_xor = _generated_keys[key_index] ^ right_e;
+		// auto new_right_subs = substitude
+		auto new_right_permutated =
+			_bit_utils::perform_permutations<(BLOCK_SIZE - 2), BLOCK_SIZE / 2>(new_right_xor /*subs*/, P);
+		auto result_new_right = left ^ new_right_permutated;
+
+
+		left = right;
+		right = result_new_right;
+	}
+
+	auto merged_bitset = _bit_utils::merge_bitset<BLOCK_SIZE>(right, left);
+	auto result_block = _bit_utils::perform_permutations<BLOCK_SIZE, BLOCK_SIZE>(bitset_block, PI_1);
+
+	return result_block;
 }
 
 const char* des_encrypter::invalid_key::what() const throw ()
 {
 	return "Invalid key! Key should be no less than 8 chars";
+}
+
+const char* des_encrypter::invalid_action::what() const throw ()
+{
+	return "Invalid action passed! Encrypt logical error";
 }
