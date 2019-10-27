@@ -212,7 +212,7 @@ namespace _bit_utils
 	{
 		constexpr uint64_t split_size = bytes_count * CHAR_BIT / slices_count;
 		std::vector<std::bitset<split_size>> slices;
-        slices.reserve(slices_count);
+        slices.resize(slices_count);
 
 		for (uint64_t i = 0; i < split_size; ++i)
 		{
