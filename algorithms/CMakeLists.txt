@@ -14,6 +14,7 @@ endfunction(buildAlgorithm)
 set(ALGORITHMS
     des
     rsa
+    feistel_gost
 )
 
 # Build all algorithms
