@@ -8,8 +8,8 @@
 #include <sstream>
 
 constexpr uint64_t MAX_PRIME_VALUE = std::numeric_limits<uint8_t>::max();
-constexpr uint64_t MIN_PRIME_VALUE = std::numeric_limits<uint8_t>::max() / 10;
-constexpr uint64_t KEY_ALIGN = 4;
+constexpr uint64_t MIN_PRIME_VALUE = std::numeric_limits<uint8_t>::max() / 2;
+constexpr uint64_t KEY_ALIGN = 8;
 
 namespace _rsa_utils
 {
@@ -31,7 +31,7 @@ namespace _rsa_utils
 		return true;
 	}
 
-	uint64_t generate_random_prime(uint64_t min_val, uint64_t max_val)
+	uint64_t generate_random_prime(uint64_t min_val, uint64_t max_val, uint64_t ignore_prime = 0)
 	{
 		std::mt19937 seed(static_cast<uint32_t>(time(0)));
 		std::uniform_int_distribution<uint64_t> generator(min_val, max_val);
@@ -40,11 +40,28 @@ namespace _rsa_utils
 		{
 			uint64_t generated_value = generator(seed);
 
-			if (is_prime(generated_value))
+			if (generated_value != ignore_prime && is_prime(generated_value))
 			{
 				return generated_value;
 			}
 		}
+	}
+
+	uint64_t gcd(uint64_t a, uint64_t b)
+	{
+		while (a > 0 && b > 0)
+		{
+			if (a > b)
+			{
+				a %= b;
+			}
+			else
+			{
+				b %= a;
+			}
+		}
+
+		return a + b;
 	}
 
 	uint64_t generate_coprime_number(uint64_t min_val, uint64_t coprime)
@@ -53,7 +70,7 @@ namespace _rsa_utils
 		{
 			uint64_t generated_value = generate_random_prime(min_val, coprime - 1);
 
-			if (coprime % generated_value != 0)
+			if (gcd(coprime, generated_value) == 1)
 			{
 				return generated_value;
 			}
@@ -79,16 +96,6 @@ namespace _rsa_utils
 		return {key_exp, module};
 	}
 
-	std::tuple<int64_t, int64_t, int64_t> extended_gcd(int64_t a, int64_t b)
-	{
-		if (a == 0)
-			return std::make_tuple(b, 0, 1);
-
-		auto [gcd, x, y] = extended_gcd(b % a, a);
-
-		return std::make_tuple(gcd, (y - (b / a) * x), x);
-	}
-
 	uint64_t exp_by_module(uint64_t symbol, uint64_t key_exp, uint64_t module)
 	{
 		uint64_t result = symbol;
@@ -98,6 +105,19 @@ namespace _rsa_utils
 		}
 		
 		return result;
+	}
+
+	uint64_t extended_gcd(uint64_t a, uint64_t b, int64_t& x, int64_t& y) {
+		if (a == 0) {
+			x = 0; y = 1;
+			return b;
+		}
+
+		int64_t prev_x, prev_y;
+		uint64_t d = extended_gcd(b % a, a, prev_x, prev_y);
+		x = prev_y - (b / a) * prev_x;
+		y = prev_x;
+		return d;
 	}
 }
 
@@ -153,23 +173,19 @@ const std::string& rsa_encrypter::get_public_key() const
 void rsa_encrypter::_generate_keys()
 {
 	uint64_t _p = _rsa_utils::generate_random_prime(MIN_PRIME_VALUE, MAX_PRIME_VALUE);
-	uint64_t _q = _rsa_utils::generate_random_prime(MIN_PRIME_VALUE, MAX_PRIME_VALUE);
-
-	// TODO: remove
-	_p = 3;
-	_q = 7;
+	uint64_t _q = _rsa_utils::generate_random_prime(MIN_PRIME_VALUE, MAX_PRIME_VALUE, _p);
 
 	uint64_t module = _p * _q;
 	uint64_t theta = (_p - 1) * (_q - 1);
 
-	uint64_t key_exp = _rsa_utils::generate_coprime_number(0 /*MIN_PRIME_VALUE*/, theta);
+	uint64_t key_exp = _rsa_utils::generate_coprime_number(MIN_PRIME_VALUE, theta);
 
-	// TODO: remove
-	key_exp = 5;
+	int64_t d = 0, y_k = 0;
+	_rsa_utils::extended_gcd(key_exp, theta, d, y_k);
 
-	uint64_t d = std::get<1>(_rsa_utils::extended_gcd(key_exp, theta));
-
-	d = 17;
+	if (d < 0) {
+		d += theta;
+	}
 
 	_public_key = _rsa_utils::key_to_string(key_exp, module);
 	_private_key = _rsa_utils::key_to_string(d, module);

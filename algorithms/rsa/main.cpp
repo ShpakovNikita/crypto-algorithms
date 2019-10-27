@@ -38,11 +38,39 @@ TEST_CASE_BEGIN(cypher_base_encrypt_decrypt)
 }
 TEST_CASE_END()
 
+TEST_CASE_BEGIN(cypher_base_stress)
+{
+	const char alphanum[] =
+		"0123456789"
+		"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+		"abcdefghijklmnopqrstuvwxyz";
+
+
+	for (uint64_t i = 0; i < 100; ++i)
+	{
+		std::string message;
+		message.resize(100);
+
+		for (int i = 0; i < 100; ++i) {
+			message[i] = alphanum[rand() % (sizeof(alphanum) - 1)];
+		}
+
+		rsa_encrypter encrypter;
+		const std::string& public_key = encrypter.get_public_key();
+		std::string encrypted = rsa_encrypter::encrypt(message, public_key);
+		assert(message != encrypted);
+		std::string decrypted = encrypter.decrypt(encrypted);
+		assert(message == decrypted);
+	}
+}
+TEST_CASE_END()
+
 int main()
 {
 	try
 	{
 		cypher_base_encrypt_decrypt();
+		cypher_base_stress();
 
 		std::cerr << tests_passed << " tests passed!" << std::endl;
 	}
