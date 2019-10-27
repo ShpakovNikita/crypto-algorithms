@@ -46,7 +46,7 @@ int main()
 
 		std::cerr << tests_passed << " tests passed!" << std::endl;
 	}
-	catch (const rsa_encrypter::invalid_key & e)
+	catch (const std::runtime_error & e)
 	{
 		std::cerr << tests_passed << " tests passed, before error occurred" << std::endl;
 
