@@ -2,6 +2,7 @@
 #include <string>
 #include <iostream>
 #include <cassert>
+
 #include "des_encrypter.hpp"
 #include "triple_des.hpp"
 
@@ -142,5 +143,5 @@ int main()
 		std::cerr << e.what() << std::endl;
 	}
 
-	return 0;
+	return EXIT_SUCCESS;
 }

@@ -272,12 +272,12 @@ des_encrypter::des_encrypter(const std::string& key)
 	_generate_keys();
 }
 
-std::string des_encrypter::encrypt(const std::string& message)
+std::string des_encrypter::encrypt(const std::string& message) const
 {
 	return _internal_run(message, _e_action::encrypt);
 }
 
-std::string des_encrypter::decrypt(const std::string& message)
+std::string des_encrypter::decrypt(const std::string& message) const
 {
 	return _internal_run(message, _e_action::decrypt);
 }
@@ -343,7 +343,7 @@ void des_encrypter::_generate_keys()
 	}
 }
 
-std::string des_encrypter::_internal_run(const std::string& message, _e_action action)
+std::string des_encrypter::_internal_run(const std::string& message, _e_action action) const
 {
 	std::string message_to_process = _construct_padding_message(message);
 	std::vector<std::string> source_blocks = _build_message_blocks(message_to_process);
@@ -373,7 +373,7 @@ std::string des_encrypter::_internal_run(const std::string& message, _e_action a
 	return result_message;
 }
 
-std::bitset<BLOCK_SIZE* CHAR_BIT> des_encrypter::_encrypt_block(const std::string& block, _e_action action)
+std::bitset<BLOCK_SIZE* CHAR_BIT> des_encrypter::_encrypt_block(const std::string& block, _e_action action) const
 {
 	auto bitset_block = _bit_utils::bytes_to_bitset<BLOCK_SIZE>(_bit_utils::stob(block));
 	auto permutated_block = _bit_utils::perform_permutations<BLOCK_SIZE, BLOCK_SIZE>(bitset_block, PI);
