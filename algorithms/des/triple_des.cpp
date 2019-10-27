@@ -23,19 +23,18 @@ std::string triple_des::encrypt(const std::string& message)
 	{
 	case triple_des::triple_des_mode::des_eee3:
 		return _encrypt_des_eee3(message);
-		[[fallthrough]];
+		[[fallthrough]] ;
 	case triple_des::triple_des_mode::des_ede3:
 		return _encrypt_des_ede3(message);
 		[[fallthrough]];
 	case triple_des::triple_des_mode::des_ede2:
 		return _encrypt_des_ede2(message);
 		[[fallthrough]];
-	case triple_des::triple_des_mode::undefined:
-		throw std::runtime_error("undefined des mode!");
-		[[fallthrough]];
 	default:
 		break;
 	}
+
+	throw std::runtime_error("undefined des mode!");
 }
 
 std::string triple_des::decrypt(const std::string& message)
@@ -51,12 +50,11 @@ std::string triple_des::decrypt(const std::string& message)
 	case triple_des::triple_des_mode::des_ede2:
 		return _decrypt_des_ede2(message);
 		[[fallthrough]];
-	case triple_des::triple_des_mode::undefined:
-		throw std::runtime_error("undefined des mode!");
-		[[fallthrough]];
 	default:
 		break;
 	}
+
+	throw std::runtime_error("undefined des mode!");
 }
 
 std::string triple_des::_encrypt_des_eee3(const std::string& message)
