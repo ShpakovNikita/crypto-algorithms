@@ -33,6 +33,8 @@ private:
 
 	static std::vector<std::string> _build_message_blocks(const std::string& message);
 
+	std::string _try_remove_padding(const std::string& message);
+
 	std::string _check_key(const std::string& key);
 	std::string _construct_padding_message(const std::string& message);
 	void _generate_keys();

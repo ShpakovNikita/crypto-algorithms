@@ -10,7 +10,7 @@ public:
 	{
 		des_eee3 = 0,
 		des_ede3,
-		des_eee2,
+		des_ede2,
 		undefined,
 	};
 
@@ -22,19 +22,14 @@ public:
 	std::string decrypt(const std::string& message);
 
 private:
-	struct invalid_action : public std::exception
-	{
-		const char* what() const throw ();
-	};
-
 	std::string _encrypt_des_eee3(const std::string& message);
 	std::string _decrypt_des_eee3(const std::string& message);
 
 	std::string _encrypt_des_ede3(const std::string& message);
 	std::string _decrypt_des_ede3(const std::string& message);
 
-	std::string _encrypt_des_eee2(const std::string& message);
-	std::string _decrypt_des_eee2(const std::string& message);
+	std::string _encrypt_des_ede2(const std::string& message);
+	std::string _decrypt_des_ede2(const std::string& message);
 
 	std::unique_ptr<des_encrypter> _encrypter_level_1;
 	std::unique_ptr<des_encrypter> _encrypter_level_2;

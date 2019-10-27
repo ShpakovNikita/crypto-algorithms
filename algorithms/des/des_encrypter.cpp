@@ -295,6 +295,17 @@ std::vector<std::string> des_encrypter::_build_message_blocks(const std::string&
 	return blocks;
 }
 
+std::string des_encrypter::_try_remove_padding(const std::string& message)
+{
+	char padding_size = message[message.size() - 1];
+	if (padding_size < BLOCK_SIZE)
+	{
+		return message.substr(0, message.size() - padding_size);
+	}
+
+	return message;
+}
+
 std::string des_encrypter::_check_key(const std::string& key)
 {
 	if (key.size() < 8)
@@ -354,6 +365,11 @@ std::string des_encrypter::_internal_run(const std::string& message, _e_action a
         auto conv_bts = _bit_utils::bytes_to_bitset<BLOCK_SIZE>(_bit_utils::stob(result_message));
 	}
 
+	if (action == _e_action::decrypt)
+	{
+		result_message = _try_remove_padding(result_message);
+	}
+
 	return result_message;
 }
 
@@ -407,8 +423,8 @@ std::bitset<BLOCK_SIZE * CHAR_BIT / 2> des_encrypter::_substitude_block(const st
     for (uint64_t i = 0; i < CHAR_BIT; ++i)
     {
         auto &block = subblocks[i];
-        uint64_t row = 0b10 * block[0] + 0b01 * block[5];
-        uint64_t col = 0b1000 * block[1] + 0b0100 * block[2] + 0b0010 * block[3] + 0b0001 * block[4];
+        uint32_t row = 0b10 * block[0] + 0b01 * block[5];
+        uint32_t col = 0b1000 * block[1] + 0b0100 * block[2] + 0b0010 * block[3] + 0b0001 * block[4];
         auto val = std::bitset<BLOCK_SIZE / 2>(S_BOX[i][row][col]);
         for (uint64_t j = 0; j < BLOCK_SIZE / 2; ++j)
         {

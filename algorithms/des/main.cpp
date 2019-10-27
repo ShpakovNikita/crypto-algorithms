@@ -3,7 +3,7 @@
 #include <iostream>
 #include <cassert>
 #include "des_encrypter.hpp"
-#include "des_wrappers.hpp"
+#include "triple_des.hpp"
 
 static uint32_t tests_passed = 0;
 
@@ -108,7 +108,7 @@ TEST_CASE_BEGIN(triple_des_eee2_encrypt_decrypt)
 	std::string key_2 = "secsst_k";
 	std::string key_3 = "swovat_k";
 
-	triple_des encrypter(key_1, key_2, key_3, triple_des::triple_des_mode::des_eee2);
+	triple_des encrypter(key_1, key_2, key_3, triple_des::triple_des_mode::des_ede2);
 	std::cout << "initial name " << message << std::endl;
 
 	std::string encrypted = encrypter.encrypt(message);
@@ -128,15 +128,17 @@ int main()
 	try
 	{
 		cypher_base_encrypt_decrypt();
+		cypher_long_message_encrypt_decrypt();
 		triple_des_eee3_encrypt_decrypt();
 		triple_des_ede3_encrypt_decrypt();
 		triple_des_eee2_encrypt_decrypt();
-		// cypher_long_message_encrypt_decrypt();
 
 		std::cerr << tests_passed << " tests passed!" << std::endl;
 	}
 	catch (const des_encrypter::invalid_key & e)
 	{
+		std::cerr << tests_passed << " tests passed, before error occurred" << std::endl;
+
 		std::cerr << e.what() << std::endl;
 	}
 
