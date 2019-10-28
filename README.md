@@ -11,7 +11,7 @@ $ cd build
 $ CMake -G Xcode ..
 ```
 
-And then you can select needed algorithm via `Product`->`Choose scheme`
+And then you can select needed algorithm via `Product`->`Scheme`->`Choose scheme`
 
 ### Windows (Using VS generator)
 ```
