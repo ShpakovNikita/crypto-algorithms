@@ -2,6 +2,7 @@
 #include <string>
 
 constexpr uint32_t ROUNDS_COUNT = 16;
+constexpr uint32_t KEY_LENGTH = 8;
 
 // initial permutations matrix for the data
 const std::vector<uint8_t> PI = {
@@ -308,12 +309,12 @@ std::string des_encrypter::_try_remove_padding(const std::string& message)
 
 std::string des_encrypter::_check_key(const std::string& key)
 {
-	if (key.size() < 8)
+	if (key.size() < KEY_LENGTH)
 	{
 		throw invalid_key();
 	}
 
-	return key.substr(0, 8);
+	return key.substr(0, KEY_LENGTH);
 }
 
 std::string des_encrypter::_construct_padding_message(const std::string& message)

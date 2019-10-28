@@ -20,7 +20,7 @@ void case_name() \
 TEST_CASE_BEGIN(cypher_base_encrypt_decrypt)
 {
 	std::string message = "Hello wo";
-	std::string key = "secret_k";
+	std::string key = "secretKDAeAAet_ksedset_kssJhin_k";
 
 	gost_encrypter encrypter(key);
 	std::cout << "initial name " << message << std::endl;

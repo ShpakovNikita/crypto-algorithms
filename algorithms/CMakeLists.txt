@@ -1,3 +1,5 @@
+cmake_minimum_required(VERSION 2.8)
+
 # Function for building single algorithm
 function(buildAlgorithm ALGO_NAME)
 	SET(ALGO_FOLDER ${CMAKE_CURRENT_SOURCE_DIR}/${ALGO_NAME})
