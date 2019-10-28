@@ -39,8 +39,8 @@ TEST_CASE_END()
 
 TEST_CASE_BEGIN(cypher_long_message_encrypt_decrypt)
 {
-	std::string message = "Hello wssdd#2123o";
-	std::string key = "secret_s";
+	std::string message = "Hello wssdd#2123osssssssssssssadsadsads adsadas";
+	std::string key = "secretKDAeAAet_ksedset_kssJhin_k";
 
 	gost_encrypter encrypter(key);
 	std::cout << "initial name " << message << std::endl;

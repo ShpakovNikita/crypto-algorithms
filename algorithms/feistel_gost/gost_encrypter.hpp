@@ -40,8 +40,6 @@ private:
 	static std::string _check_key(const std::string& key);
 	static std::string _construct_padding_message(const std::string& message);
 
-	static std::bitset<HALF_BLOCK_SIZE_BITS> _substitude_block(const std::bitset<(BLOCK_SIZE - 2) * CHAR_BIT>& block);
-
 	std::bitset<BLOCK_SIZE * CHAR_BIT> _encrypt_block(const std::string& block, _e_action action) const;
 	std::string _internal_run(const std::string& message, _e_action action) const;
 

@@ -26,7 +26,7 @@ namespace _bit_utils
 		uint8_t overflow = 0;
 		std::bitset<bytes_count* CHAR_BIT> result;
 
-		for (int8_t i = first.size() - 1; i >= 0; i--) {
+		for (int64_t i = first.size() - 1; i >= 0; i--) {
 			result[i] = (first[i] ^ second[i]) ^ overflow;
 			overflow = static_cast<uint8_t>(first[i]) + 
 				static_cast<uint8_t>(second[i]) + 
@@ -113,6 +113,24 @@ namespace _bit_utils
 		}
 
 		return merged_bitset;
+	}
+	
+	template <uint32_t bits_count>
+	static std::bitset<bits_count> shift_bitset_cyclic(const std::bitset<bits_count>& data, uint8_t offset)
+	{
+		std::bitset<bits_count> output_data(data);
+		for (uint64_t i = 0; i < bits_count - offset; ++i)
+		{
+			output_data[i] = data[i + offset];
+		}
+
+		uint64_t start_pos = bits_count - offset;
+		for (uint64_t i = 0; i < offset; ++i)
+		{
+			output_data[start_pos + i] = data[i];
+		}
+
+		return output_data;
 	}
 
 	uint8_t* stob(const std::string& str)
@@ -220,7 +238,8 @@ std::bitset<HALF_BLOCK_SIZE_BITS> gost_encrypter::feistel_function(
 		}
 	}
 
-	return result_subs << 11;
+	auto shifted_result = _bit_utils::shift_bitset_cyclic<HALF_BLOCK_SIZE_BITS>(result_subs, 11);
+	return shifted_result;
 }
 
 std::string gost_encrypter::_internal_run(const std::string& message, _e_action action) const
@@ -253,7 +272,7 @@ std::string gost_encrypter::_internal_run(const std::string& message, _e_action 
 	return result_message;
 }
 
-std::bitset<BLOCK_SIZE* CHAR_BIT> gost_encrypter::_encrypt_block(const std::string& block, _e_action action) const
+std::bitset<BLOCK_SIZE * CHAR_BIT> gost_encrypter::_encrypt_block(const std::string& block, _e_action action) const
 {
 	auto bitset_block = _bit_utils::bytes_to_bitset<BLOCK_SIZE>(_bit_utils::stob(block));
 
@@ -278,7 +297,7 @@ std::bitset<BLOCK_SIZE* CHAR_BIT> gost_encrypter::_encrypt_block(const std::stri
 		a_data = new_A_data;
 	}
 
-	auto merged_bitset = _bit_utils::merge_bitset<BLOCK_SIZE>(a_data, b_data);
+	auto merged_bitset = _bit_utils::merge_bitset<BLOCK_SIZE>(b_data, a_data);
 
 	return merged_bitset;
 }
