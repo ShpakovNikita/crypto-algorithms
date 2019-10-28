@@ -40,7 +40,7 @@ TEST_CASE_END()
 
 TEST_CASE_BEGIN(cypher_long_message_encrypt_decrypt)
 {
-	std::string message = "Hello wssdd#2123o";
+	std::string message = "Lorem ipsum dolor sit amet, consectetur adipiscing elit";
 	std::string key = "secret_s";
 
 	des_encrypter encrypter(key);

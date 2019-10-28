@@ -20,18 +20,18 @@ public:
 		const std::string& key_3, triple_des_mode mode);
 	~triple_des();
 
-	std::string encrypt(const std::string& message);
-	std::string decrypt(const std::string& message);
+	std::string encrypt(const std::string& message) const;
+	std::string decrypt(const std::string& message) const;
 
 private:
-	std::string _encrypt_des_eee3(const std::string& message);
-	std::string _decrypt_des_eee3(const std::string& message);
+	std::string _encrypt_des_eee3(const std::string& message) const;
+	std::string _decrypt_des_eee3(const std::string& message) const;
 
-	std::string _encrypt_des_ede3(const std::string& message);
-	std::string _decrypt_des_ede3(const std::string& message);
+	std::string _encrypt_des_ede3(const std::string& message) const;
+	std::string _decrypt_des_ede3(const std::string& message) const;
 
-	std::string _encrypt_des_ede2(const std::string& message);
-	std::string _decrypt_des_ede2(const std::string& message);
+	std::string _encrypt_des_ede2(const std::string& message) const;
+	std::string _decrypt_des_ede2(const std::string& message) const;
 
 	std::unique_ptr<des_encrypter> _encrypter_level_1;
 	std::unique_ptr<des_encrypter> _encrypter_level_2;

@@ -18,13 +18,13 @@ void case_name() \
 
 TEST_CASE_BEGIN(cypher_base_encrypt_decrypt)
 {
-	std::string message = "Hello world";
+	std::string message = "Lorem ipsum dolor sit amet, consectetur adipiscing elit";
 
 	rsa_encrypter encrypter;
 	std::cout << "initial name " << message << std::endl;
 
 	const std::string& public_key = encrypter.get_public_key();
-	std::cout << "public key " << message << std::endl;
+	std::cout << "public key " << public_key << std::endl;
 
 	std::string encrypted = rsa_encrypter::encrypt(message, public_key);
 	std::cout << "encrypted name " << encrypted << std::endl;
