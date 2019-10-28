@@ -102,7 +102,7 @@ TEST_CASE_BEGIN(gost_wrapper_ede3_encrypt_decrypt)
 }
 TEST_CASE_END()
 
-TEST_CASE_BEGIN(gost_wrapper_eee2_encrypt_decrypt)
+TEST_CASE_BEGIN(gost_wrapper_ede2_encrypt_decrypt)
 {
 	std::string message = "Hello wo";
 	std::string key_1 = "secretKDAeAAet_ksedset_kssJhin_k";
@@ -131,7 +131,7 @@ int main()
 		cypher_base_encrypt_decrypt();
 		cypher_long_message_encrypt_decrypt();
 		gost_wrapper_ede3_encrypt_decrypt();
-		gost_wrapper_eee2_encrypt_decrypt();
+		gost_wrapper_ede2_encrypt_decrypt();
 		gost_wrapper_eee3_encrypt_decrypt();
 
 		std::cerr << tests_passed << " tests passed!" << std::endl;

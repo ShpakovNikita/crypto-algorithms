@@ -102,7 +102,7 @@ TEST_CASE_BEGIN(triple_des_ede3_encrypt_decrypt)
 }
 TEST_CASE_END()
 
-TEST_CASE_BEGIN(triple_des_eee2_encrypt_decrypt)
+TEST_CASE_BEGIN(triple_des_ede2_encrypt_decrypt)
 {
 	std::string message = "Hello wo";
 	std::string key_1 = "secret_k";
@@ -132,7 +132,7 @@ int main()
 		cypher_long_message_encrypt_decrypt();
 		triple_des_eee3_encrypt_decrypt();
 		triple_des_ede3_encrypt_decrypt();
-		triple_des_eee2_encrypt_decrypt();
+		triple_des_ede2_encrypt_decrypt();
 
 		std::cerr << tests_passed << " tests passed!" << std::endl;
 	}
