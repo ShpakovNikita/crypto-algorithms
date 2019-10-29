@@ -17,6 +17,7 @@ set(ALGORITHMS
     des
     rsa
     feistel_gost
+    hash_gost
 )
 
 # Build all algorithms
