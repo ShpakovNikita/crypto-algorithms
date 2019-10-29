@@ -51,8 +51,8 @@ TEST_CASE_BEGIN(cypher_base_stress)
 		std::string message;
 		message.resize(100);
 
-		for (int i = 0; i < 100; ++i) {
-			message[i] = alphanum[rand() % (sizeof(alphanum) - 1)];
+		for (uint64_t j = 0; j < 100; ++j) {
+			message[j] = alphanum[rand() % (sizeof(alphanum) - 1)];
 		}
 
 		digital_signer encrypter;

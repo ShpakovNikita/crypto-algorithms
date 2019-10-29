@@ -6,10 +6,14 @@
 #include <iosfwd>
 #include <iomanip>
 #include <sstream>
+#include <iostream>
+#include "BigIntegerLibrary.hh"
 
 constexpr uint64_t MAX_PRIME_VALUE = std::numeric_limits<uint8_t>::max();
 constexpr uint64_t MIN_PRIME_VALUE = std::numeric_limits<uint8_t>::max() / 2;
 constexpr uint64_t KEY_ALIGN = 8;
+
+using big_integer = BigInteger;
 
 namespace _rsa_utils
 {
@@ -152,6 +156,10 @@ std::string digital_signer::decrypt(const std::string& message) const
 
 	std::stringstream encryption_stream(message);
 	std::string decrypted_message;
+
+	// TODO: remove after CMake external dependencies add
+	big_integer headers_test = stringToBigInteger("100500100500100500100500100500100500100500100500");
+	std::cout << headers_test << std::endl;
 
 	std::string encoded_symbol_string;
 

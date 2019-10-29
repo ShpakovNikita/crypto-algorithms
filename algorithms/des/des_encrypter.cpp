@@ -422,9 +422,9 @@ std::bitset<BLOCK_SIZE * CHAR_BIT / 2> des_encrypter::_substitude_block(const st
     auto subblocks = _bit_utils::split_bitset<(BLOCK_SIZE - 2), BLOCK_SIZE>(block);
     for (uint64_t i = 0; i < CHAR_BIT; ++i)
     {
-        auto &block = subblocks[i];
-        uint32_t row = 0b10 * block[0] + 0b01 * block[5];
-        uint32_t col = 0b1000 * block[1] + 0b0100 * block[2] + 0b0010 * block[3] + 0b0001 * block[4];
+        auto &subblock = subblocks[i];
+        uint32_t row = 0b10 * subblock[0] + 0b01 * subblock[5];
+        uint32_t col = 0b1000 * subblock[1] + 0b0100 * subblock[2] + 0b0010 * subblock[3] + 0b0001 * subblock[4];
         auto val = std::bitset<BLOCK_SIZE / 2>(S_BOX[i][row][col]);
         for (uint64_t j = 0; j < BLOCK_SIZE / 2; ++j)
         {
