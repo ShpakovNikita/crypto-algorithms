@@ -18,6 +18,7 @@ set(ALGORITHMS
     rsa
     feistel_gost
     hash_gost
+    digital_signature
 )
 
 # Build all algorithms
