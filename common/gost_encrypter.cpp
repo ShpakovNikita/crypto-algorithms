@@ -261,7 +261,6 @@ std::string gost_encrypter::_internal_run(const std::string& message, _e_action 
 	for (const auto& block : result_blocks)
 	{
 		result_message += _bit_utils::bitset_to_bytes<BLOCK_SIZE>(block);
-        auto conv_bts = _bit_utils::bytes_to_bitset<BLOCK_SIZE>(_bit_utils::stob(result_message));
 	}
 
 	if (action == _e_action::decrypt)

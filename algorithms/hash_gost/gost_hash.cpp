@@ -1,10 +1,9 @@
 #include "gost_hash.hpp"
 #include <string>
+#include <cmath>
 
 // TODO: create something like common module with common algorithms
 #include "gost_encrypter.hpp"
-
-constexpr uint32_t ROUNDS_COUNT = 32;
 
 // id-tc26-gost-28147-param-Z id of S box
 const std::vector<std::vector<uint8_t>> S_BOX =
