@@ -1,6 +1,9 @@
 #include "gost_hash.hpp"
 #include <string>
 
+// TODO: create something like common module with common algorithms
+#include "../feistel_gost/gost_encrypter.hpp"
+
 constexpr uint32_t ROUNDS_COUNT = 32;
 
 // id-tc26-gost-28147-param-Z id of S box
@@ -28,7 +31,7 @@ const uint8_t CONSTANT_3[32] =
 
 const uint8_t CONSTANT_4 = 0;
 
-static std::vector<std::bitset<BLOCK_SIZE* CHAR_BIT>> KEYGEN_CONSTANTS;
+static std::vector<std::bitset<HASH_BLOCK_SIZE* CHAR_BIT>> KEYGEN_CONSTANTS;
 
 namespace _bit_utils
 {
@@ -181,12 +184,12 @@ namespace _bit_utils
 gost_hash::gost_hash(const std::string& starting_hash_block)
 {
 	uint8_t* hash_bytes = _bit_utils::stob(_check_starting_block(starting_hash_block));
-	_starting_hash_block = _bit_utils::bytes_to_bitset<BLOCK_SIZE>(hash_bytes);
+	_starting_hash_block = _bit_utils::bytes_to_bitset<HASH_BLOCK_SIZE>(hash_bytes);
 
 	if (KEYGEN_CONSTANTS.empty())
 	{
 		KEYGEN_CONSTANTS.push_back(CONSTANT_2);
-		KEYGEN_CONSTANTS.push_back(_bit_utils::bytes_to_bitset<BLOCK_SIZE>(CONSTANT_3));
+		KEYGEN_CONSTANTS.push_back(_bit_utils::bytes_to_bitset<HASH_BLOCK_SIZE>(CONSTANT_3));
 		KEYGEN_CONSTANTS.push_back(CONSTANT_4);
 	}
 }
@@ -199,11 +202,11 @@ std::string gost_hash::generate_hash(const std::string& message) const
 std::vector<std::string> gost_hash::_build_message_blocks(const std::string& message)
 {
 	std::vector<std::string> blocks;
-	size_t blocks_count = message.size() / BLOCK_SIZE;
+	size_t blocks_count = message.size() / HASH_BLOCK_SIZE;
 	blocks.reserve(blocks_count);
 	for (uint32_t i = 0; i < blocks_count; ++i)
 	{
-		blocks.push_back(message.substr(static_cast<size_t>(i) * BLOCK_SIZE, BLOCK_SIZE));
+		blocks.push_back(message.substr(static_cast<size_t>(i) * HASH_BLOCK_SIZE, HASH_BLOCK_SIZE));
 	}
 
 	return blocks;
@@ -212,7 +215,7 @@ std::vector<std::string> gost_hash::_build_message_blocks(const std::string& mes
 std::string gost_hash::_try_remove_padding(const std::string& message)
 {
 	char padding_size = message[message.size() - 1];
-	if (padding_size < BLOCK_SIZE)
+	if (padding_size < HASH_BLOCK_SIZE)
 	{
 		return message.substr(0, message.size() - padding_size);
 	}
@@ -222,17 +225,17 @@ std::string gost_hash::_try_remove_padding(const std::string& message)
 
 std::string gost_hash::_check_starting_block(const std::string& key)
 {
-	if (key.size() < BLOCK_SIZE)
+	if (key.size() < HASH_BLOCK_SIZE)
 	{
 		throw invalid_key();
 	}
 
-	return key.substr(0, BLOCK_SIZE);
+	return key.substr(0, HASH_BLOCK_SIZE);
 }
 
 std::string gost_hash::_construct_padding_message(const std::string& message)
 {
-	uint8_t padding_len = (BLOCK_SIZE - message.size()) % BLOCK_SIZE;
+	uint8_t padding_len = (HASH_BLOCK_SIZE - message.size()) % HASH_BLOCK_SIZE;
 
 	// msvc16 bug?
 	uint8_t zero_character = 0;
@@ -247,47 +250,111 @@ uint64_t gost_hash::_get_phi_index(uint64_t input_index)
 	return 8 * i + k - 1;
 }
 
-std::bitset<BLOCK_SIZE * CHAR_BIT> gost_hash::a_transform(const std::bitset<BLOCK_SIZE * CHAR_BIT>& block)
+std::bitset<HASH_BLOCK_SIZE * CHAR_BIT> gost_hash::_a_transform(const std::bitset<HASH_BLOCK_SIZE * CHAR_BIT>& block)
 {
-	auto y_blocks = _bit_utils::split_bitset<BLOCK_SIZE, 4>(block);
-	auto first_merge = _bit_utils::merge_bitset<BLOCK_SIZE / 2>(y_blocks[0] ^ y_blocks[1], y_blocks[3]);
-	auto second_merge = _bit_utils::merge_bitset<BLOCK_SIZE / 2>(y_blocks[2], y_blocks[3]);
-	auto result_merge = _bit_utils::merge_bitset<BLOCK_SIZE>(first_merge, second_merge);
+	auto y_blocks = _bit_utils::split_bitset<HASH_BLOCK_SIZE, 4>(block);
+	auto first_merge = _bit_utils::merge_bitset<HASH_BLOCK_SIZE / 2>(y_blocks[0] ^ y_blocks[1], y_blocks[3]);
+	auto second_merge = _bit_utils::merge_bitset<HASH_BLOCK_SIZE / 2>(y_blocks[2], y_blocks[3]);
+	auto result_merge = _bit_utils::merge_bitset<HASH_BLOCK_SIZE>(first_merge, second_merge);
 
 	return result_merge;
 }
 
-std::bitset<BLOCK_SIZE * CHAR_BIT> gost_hash::p_transform(const std::bitset<BLOCK_SIZE* CHAR_BIT>& block)
+std::bitset<HASH_BLOCK_SIZE * CHAR_BIT> gost_hash::_p_transform(const std::bitset<HASH_BLOCK_SIZE* CHAR_BIT>& block)
 {
-	std::vector<std::bitset<CHAR_BIT>> y_blocks = _bit_utils::split_bitset<BLOCK_SIZE, 32>(block);
+	std::vector<std::bitset<CHAR_BIT>> y_blocks = _bit_utils::split_bitset<HASH_BLOCK_SIZE, 32>(block);
 	std::vector<std::bitset<CHAR_BIT>> y_blocks_permutated;
 	y_blocks_permutated.resize(y_blocks.size());
 
-	for (uint64_t i = 0; i < y_blocks.size(); ++i)
+	for (int64_t i = 31; i >= 0; --i)
 	{
-		y_blocks_permutated[i] = y_blocks[_get_phi_index(i)];
+		y_blocks_permutated[31 - i] = y_blocks[_get_phi_index(i)];
 	}
 
-	auto merged_bitset = _bit_utils::merge_bitsets<BLOCK_SIZE, 1>(y_blocks_permutated);
+	auto merged_bitset = _bit_utils::merge_bitsets<HASH_BLOCK_SIZE, 1>(y_blocks_permutated);
 	return merged_bitset;
 }
 
-std::vector<std::bitset<BLOCK_SIZE * CHAR_BIT>> gost_hash::_generate_keys(
-	const std::bitset<BLOCK_SIZE* CHAR_BIT>& h_block, const std::bitset<BLOCK_SIZE* CHAR_BIT>& m_block)
+std::bitset<HASH_BLOCK_SIZE* CHAR_BIT> gost_hash::_psi_transform(const std::bitset<HASH_BLOCK_SIZE * CHAR_BIT>& block)
+{
+	auto y_subkeys = _bit_utils::split_bitset<HASH_BLOCK_SIZE, 16>(block);
+	std::vector<std::bitset<CHAR_BIT * 2>> y_blocks_permutated;
+	y_blocks_permutated.resize(y_subkeys.size());
+
+	y_blocks_permutated[0] = y_subkeys[0] ^ y_subkeys[1] ^ y_subkeys[2] ^ y_subkeys[3] ^ y_subkeys[12] ^ y_subkeys[15];
+
+	for (int64_t i = 15; i >= 1; --i)
+	{
+		// we start from 1 index
+		y_blocks_permutated[16 - i] = y_subkeys[i];
+	}
+
+	auto merged_bitset = _bit_utils::merge_bitsets<HASH_BLOCK_SIZE, 2>(y_blocks_permutated);
+	return merged_bitset;
+}
+
+std::bitset<HASH_BLOCK_SIZE* CHAR_BIT> gost_hash::_generate_s_block(
+	const std::bitset<HASH_BLOCK_SIZE* CHAR_BIT>& block, const std::vector<std::bitset<HASH_BLOCK_SIZE * CHAR_BIT>>& keys)
+{
+	auto h_subblocks = _bit_utils::split_bitset<HASH_BLOCK_SIZE, 4>(block);
+	std::vector<std::bitset<HASH_BLOCK_SIZE * 2>> s_subblocks;
+	s_subblocks.reserve(4);
+
+	for (uint64_t i = 0; i < 4; ++i)
+	{
+		std::string gost_key = _bit_utils::bitset_to_bytes<HASH_BLOCK_SIZE>(keys[i]);
+		gost_encrypter encrypter(gost_key);
+
+		std::string h_message = _bit_utils::bitset_to_bytes<HASH_BLOCK_SIZE / 4>(h_subblocks[i]);
+		std::string s_subblock = encrypter.encrypt(h_message);
+		s_subblocks.push_back(_bit_utils::bytes_to_bitset<HASH_BLOCK_SIZE / 4>(_bit_utils::stob(s_subblock)));
+	}
+
+	auto merged_bitset = _bit_utils::merge_bitsets<HASH_BLOCK_SIZE, HASH_BLOCK_SIZE / 4>(s_subblocks);
+	return merged_bitset;
+}
+
+std::bitset<HASH_BLOCK_SIZE * CHAR_BIT> gost_hash::_permutate_hash_step(
+	const std::bitset<HASH_BLOCK_SIZE * CHAR_BIT>& m_block, 
+	const std::bitset<HASH_BLOCK_SIZE * CHAR_BIT>& h_block, 
+	const std::bitset<HASH_BLOCK_SIZE * CHAR_BIT>& s_block)
+{
+	std::bitset<HASH_BLOCK_SIZE* CHAR_BIT> first_step = s_block;
+
+	for (uint64_t i = 0; i < 12; ++i)
+	{
+		first_step = _psi_transform(first_step);
+	}
+
+	std::bitset<HASH_BLOCK_SIZE* CHAR_BIT> second_step = first_step ^ m_block;
+	second_step = _psi_transform(second_step);
+
+	std::bitset<HASH_BLOCK_SIZE* CHAR_BIT> third_step = h_block ^ second_step;
+
+	for (uint64_t i = 0; i < 61; ++i)
+	{
+		third_step = _psi_transform(third_step);
+	}
+
+	return third_step;
+}
+
+std::vector<std::bitset<HASH_BLOCK_SIZE * CHAR_BIT>> gost_hash::_generate_keys(
+	const std::bitset<HASH_BLOCK_SIZE* CHAR_BIT>& h_block, const std::bitset<HASH_BLOCK_SIZE* CHAR_BIT>& m_block)
 {
 	auto u_block = h_block, v_block = m_block;
 	auto W_block = u_block ^ v_block;
 
-	std::vector<std::bitset<BLOCK_SIZE* CHAR_BIT>> generated_keys;
+	std::vector<std::bitset<HASH_BLOCK_SIZE* CHAR_BIT>> generated_keys;
 	generated_keys.reserve(4);
-	generated_keys.push_back(p_transform(W_block));
+	generated_keys.push_back(_p_transform(W_block));
 
 	for (uint64_t i = 0; i < 3; ++i)
 	{
-		u_block = a_transform(u_block) ^ KEYGEN_CONSTANTS[i];
-		v_block = a_transform(a_transform(v_block));
+		u_block = _a_transform(u_block) ^ KEYGEN_CONSTANTS[i];
+		v_block = _a_transform(_a_transform(v_block));
 		W_block = u_block ^ W_block;
-		generated_keys.push_back(p_transform(W_block));
+		generated_keys.push_back(_p_transform(W_block));
 	}
 
 	return generated_keys;
@@ -299,29 +366,32 @@ std::string gost_hash::_internal_run(const std::string& message) const
 
 	std::string message_to_process = _construct_padding_message(message);
 	std::vector<std::string> source_blocks = _build_message_blocks(message_to_process);
-	std::bitset<BLOCK_SIZE * CHAR_BIT> result_block = _starting_hash_block;
-	std::bitset<BLOCK_SIZE * CHAR_BIT> control_sum = 0;
+	std::bitset<HASH_BLOCK_SIZE * CHAR_BIT> result_block = _starting_hash_block;
+	std::bitset<HASH_BLOCK_SIZE * CHAR_BIT> control_sum = 0;
 
 	for (const auto& block : source_blocks)
 	{
-		auto block_bitset = _bit_utils::bytes_to_bitset<BLOCK_SIZE>(_bit_utils::stob(block));
+		auto block_bitset = _bit_utils::bytes_to_bitset<HASH_BLOCK_SIZE>(_bit_utils::stob(block));
 		result_block = _hash_block(result_block, block_bitset);
-		std::tie(std::ignore, control_sum) = _bit_utils::add_mod_2<BLOCK_SIZE>(control_sum, block_bitset);
+		std::tie(std::ignore, control_sum) = _bit_utils::add_mod_2<HASH_BLOCK_SIZE>(control_sum, block_bitset);
 	}
 
-	result_block = _hash_block(result_block, _bit_utils::bytes_to_bitset<BLOCK_SIZE>(_bit_utils::int_to_bytes(message_len).data()));
+	result_block = _hash_block(result_block, 
+		_bit_utils::bytes_to_bitset<HASH_BLOCK_SIZE>(_bit_utils::int_to_bytes(message_len).data()));
 	result_block = _hash_block(result_block, control_sum);
 	
-	std::string result_message = _bit_utils::bitset_to_bytes<BLOCK_SIZE>(result_block);
+	std::string result_message = _bit_utils::bitset_to_bytes<HASH_BLOCK_SIZE>(result_block);
 
 	return result_message;
 }
 
-std::bitset<BLOCK_SIZE * CHAR_BIT> gost_hash::_hash_block(const std::bitset<BLOCK_SIZE * CHAR_BIT>& h_block, 
-	const std::bitset<BLOCK_SIZE * CHAR_BIT>& message_block) const
+std::bitset<HASH_BLOCK_SIZE * CHAR_BIT> gost_hash::_hash_block(const std::bitset<HASH_BLOCK_SIZE * CHAR_BIT>& h_block, 
+	const std::bitset<HASH_BLOCK_SIZE * CHAR_BIT>& message_block) const
 {
 	auto keys = _generate_keys(h_block, message_block);
-	return {};
+	auto s_block = _generate_s_block(h_block, keys);
+	auto permutate_block = _permutate_hash_step(message_block, h_block, s_block);
+	return permutate_block;
 }
 
 const char* gost_hash::invalid_key::what() const throw ()
