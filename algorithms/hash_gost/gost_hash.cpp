@@ -2,7 +2,7 @@
 #include <string>
 
 // TODO: create something like common module with common algorithms
-#include "../feistel_gost/gost_encrypter.hpp"
+#include "gost_encrypter.hpp"
 
 constexpr uint32_t ROUNDS_COUNT = 32;
 
@@ -37,9 +37,9 @@ namespace _bit_utils
 {
 	std::vector<uint8_t> int_to_bytes(uint64_t long_value)
 	{
-		std::vector<uint8_t> bytes_array(8);
-		for (uint64_t i = 0; i < 8; i++)
-			bytes_array[7 - i] = static_cast<uint8_t>(long_value >> (i * 8));
+		std::vector<uint8_t> bytes_array(32);
+		for (uint64_t i = 0; i < 32; i++)
+			bytes_array[31 - i] = static_cast<uint8_t>(long_value >> (i * 8));
 
 		return bytes_array;
 	}
@@ -175,7 +175,7 @@ namespace _bit_utils
 		return output_data;
 	}
 
-	uint8_t* stob(const std::string& str)
+	static uint8_t* stob(const std::string& str)
 	{
 		return reinterpret_cast<uint8_t*>(const_cast<char*>(str.data()));
 	}
@@ -210,17 +210,6 @@ std::vector<std::string> gost_hash::_build_message_blocks(const std::string& mes
 	}
 
 	return blocks;
-}
-
-std::string gost_hash::_try_remove_padding(const std::string& message)
-{
-	char padding_size = message[message.size() - 1];
-	if (padding_size < HASH_BLOCK_SIZE)
-	{
-		return message.substr(0, message.size() - padding_size);
-	}
-
-	return message;
 }
 
 std::string gost_hash::_check_starting_block(const std::string& key)
@@ -293,7 +282,7 @@ std::bitset<HASH_BLOCK_SIZE* CHAR_BIT> gost_hash::_psi_transform(const std::bits
 	return merged_bitset;
 }
 
-std::bitset<HASH_BLOCK_SIZE* CHAR_BIT> gost_hash::_generate_s_block(
+std::bitset<HASH_BLOCK_SIZE * CHAR_BIT> gost_hash::_generate_s_block(
 	const std::bitset<HASH_BLOCK_SIZE* CHAR_BIT>& block, const std::vector<std::bitset<HASH_BLOCK_SIZE * CHAR_BIT>>& keys)
 {
 	auto h_subblocks = _bit_utils::split_bitset<HASH_BLOCK_SIZE, 4>(block);
@@ -374,10 +363,17 @@ std::string gost_hash::_internal_run(const std::string& message) const
 		auto block_bitset = _bit_utils::bytes_to_bitset<HASH_BLOCK_SIZE>(_bit_utils::stob(block));
 		result_block = _hash_block(result_block, block_bitset);
 		std::tie(std::ignore, control_sum) = _bit_utils::add_mod_2<HASH_BLOCK_SIZE>(control_sum, block_bitset);
+
+		std::string def1 = _bit_utils::bitset_to_bytes<HASH_BLOCK_SIZE>(result_block);
+		std::string def2 = _bit_utils::bitset_to_bytes<HASH_BLOCK_SIZE>(control_sum);
 	}
 
-	result_block = _hash_block(result_block, 
-		_bit_utils::bytes_to_bitset<HASH_BLOCK_SIZE>(_bit_utils::int_to_bytes(message_len).data()));
+	std::string def1 = _bit_utils::bitset_to_bytes<HASH_BLOCK_SIZE>(result_block);
+	std::string def2 = _bit_utils::bitset_to_bytes<HASH_BLOCK_SIZE>(control_sum);
+
+	auto len_bitset = _bit_utils::bytes_to_bitset<HASH_BLOCK_SIZE>(_bit_utils::int_to_bytes(message_len).data());
+
+	result_block = _hash_block(result_block, len_bitset);
 	result_block = _hash_block(result_block, control_sum);
 	
 	std::string result_message = _bit_utils::bitset_to_bytes<HASH_BLOCK_SIZE>(result_block);

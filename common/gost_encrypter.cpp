@@ -133,7 +133,7 @@ namespace _bit_utils
 		return output_data;
 	}
 
-	static uint8_t* stob(const std::string& str)
+	uint8_t* stob(const std::string& str)
 	{
 		return reinterpret_cast<uint8_t*>(const_cast<char*>(str.data()));
 	}

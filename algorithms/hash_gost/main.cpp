@@ -17,7 +17,7 @@ void case_name() \
 	++tests_passed; \
 }
 
-TEST_CASE_BEGIN(cypher_base_encrypt_decrypt)
+TEST_CASE_BEGIN(hash_base_encrypt_decrypt)
 {
 	std::string message = "secretKDAeAAet_ksedset_kssJhin_k";
 
@@ -26,10 +26,13 @@ TEST_CASE_BEGIN(cypher_base_encrypt_decrypt)
 
 	std::string hash_result = hash_generator.generate_hash(message);
 	std::cout << "hash result name " << hash_result << std::endl;
+
+	assert(hash_result != message);
+	assert(hash_result.size() == 32);
 }
 TEST_CASE_END()
 
-TEST_CASE_BEGIN(cypher_long_message_encrypt_decrypt)
+TEST_CASE_BEGIN(hash_long_message_encrypt_decrypt)
 {
 	std::string message = "secretKDAeAAet_ksedset_kssJhin_ksecretKDAeAAet_ksedset_kssJhin_ksecretKDAeAAet_ksedset_kssJhin_kdsdsdsds";
 
@@ -38,6 +41,9 @@ TEST_CASE_BEGIN(cypher_long_message_encrypt_decrypt)
 
 	std::string hash_result = hash_generator.generate_hash(message);
 	std::cout << "hash result name " << hash_result << std::endl;
+
+	assert(hash_result != message);
+	assert(hash_result.size() == 32);
 }
 TEST_CASE_END()
 
@@ -45,8 +51,8 @@ int main()
 {
 	try
 	{
-		cypher_base_encrypt_decrypt();
-		cypher_long_message_encrypt_decrypt();
+		hash_base_encrypt_decrypt();
+		hash_long_message_encrypt_decrypt();
 
 		std::cerr << tests_passed << " tests passed!" << std::endl;
 	}

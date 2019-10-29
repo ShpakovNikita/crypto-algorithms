@@ -21,7 +21,6 @@ public:
 
 private:
 	static std::vector<std::string> _build_message_blocks(const std::string& message);
-	static std::string _try_remove_padding(const std::string& message);
 	static std::string _check_starting_block(const std::string& key);
 	static std::string _construct_padding_message(const std::string& message);
 

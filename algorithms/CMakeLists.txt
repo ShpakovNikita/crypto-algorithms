@@ -10,7 +10,7 @@ function(buildAlgorithm ALGO_NAME)
     
     add_executable(${ALGO_NAME} ${SOURCE})
     
-    target_link_libraries(${ALGO_NAME})
+    target_link_libraries(${ALGO_NAME} common)
 endfunction(buildAlgorithm)
 
 set(ALGORITHMS
