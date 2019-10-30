@@ -1,7 +1,7 @@
 #include "gost_wrapper.hpp"
-#include "gost_encrypter.hpp"
-#include <string>
 #include <stdexcept>
+
+#include "gost_encrypter.hpp"
 
 gost_wrapper::gost_wrapper(const std::string& key_1, const std::string& key_2, 
 	const std::string& key_3, gost_wrapper_mode mode)

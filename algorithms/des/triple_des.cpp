@@ -1,6 +1,5 @@
 #include "triple_des.hpp"
 #include "des_encrypter.hpp"
-#include <string>
 #include <stdexcept>
 
 triple_des::triple_des(const std::string& key_1, const std::string& key_2, 

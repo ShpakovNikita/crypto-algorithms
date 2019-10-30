@@ -1,12 +1,12 @@
 #include "digital_signer.hpp"
 #include <random>
 #include <limits>
-#include <time.h>
 #include <ios>
 #include <iosfwd>
 #include <iomanip>
 #include <sstream>
 #include <iostream>
+
 #include "gost_hash.hpp"
 
 constexpr uint64_t KEY_ALIGN = 64;
