@@ -4,9 +4,7 @@
 #include <vector>
 #include <unordered_map>
 
-#include "BigIntegerLibrary.hh"
-
-using big_unsigned = BigUnsigned;
+#include "big_integer.hpp"
 
 class digital_signer
 {

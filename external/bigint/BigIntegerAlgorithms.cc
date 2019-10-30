@@ -73,7 +73,7 @@ BigUnsigned modexp(const BigInteger &base, const BigUnsigned &exponent,
 }
 
 BigUnsigned rand_int(const BigUnsigned& lower, const BigUnsigned& upper) {
-	auto lower_bound = lower.getLength(), upper_bound = upper.getLength();
+	auto lower_bound = bigUnsignedToString(lower).size(), upper_bound = bigUnsignedToString(upper).size();
 
 	std::random_device rd;
 	std::mt19937 gen(rd());

@@ -1,11 +1,11 @@
 #include "rsa_encrypter.hpp"
 #include <random>
-#include <limits>
-#include <time.h>
 #include <ios>
 #include <iosfwd>
 #include <iomanip>
 #include <sstream>
+
+#include "prime_utils.hpp"
 
 constexpr uint64_t MAX_PRIME_VALUE = std::numeric_limits<uint8_t>::max();
 constexpr uint64_t MIN_PRIME_VALUE = std::numeric_limits<uint8_t>::max() / 2;
@@ -13,36 +13,20 @@ constexpr uint64_t KEY_ALIGN = 8;
 
 namespace _rsa_utils
 {
-	bool is_prime(uint64_t n)
+	// TODO: rewrite RSA algorithm on big int like digital signature 
+	uint64_t generate_prime_number(uint64_t min_val, uint64_t max_val, uint64_t ignore_prime = 0)
 	{
-		if (n <= 1)
-		{
-			return false;
-		}
-
-		for (uint64_t i = 2; i < n; ++i)
-		{
-			if (n % i == 0)
-			{
-				return false;
-			}
-		}
-
-		return true;
-	}
-
-	uint64_t generate_random_prime(uint64_t min_val, uint64_t max_val, uint64_t ignore_prime = 0)
-	{
-		std::mt19937 seed(static_cast<uint32_t>(time(0)));
-		std::uniform_int_distribution<uint64_t> generator(min_val, max_val);
+		const big_unsigned ignore_big_prime(static_cast<unsigned long>(ignore_prime));
+		const big_unsigned min_val_big(static_cast<unsigned long>(min_val));
+		const big_unsigned max_val_big(static_cast<unsigned long>(max_val));
 
 		while (true)
 		{
-			uint64_t generated_value = generator(seed);
+			big_unsigned generated_value = prime_utils::generate_prime_number(min_val_big, max_val_big);
 
-			if (generated_value != ignore_prime && is_prime(generated_value))
+			if (generated_value != ignore_big_prime && prime_utils::is_prime(generated_value))
 			{
-				return generated_value;
+				return generated_value.toUnsignedLong();
 			}
 		}
 	}
@@ -68,7 +52,7 @@ namespace _rsa_utils
 	{
 		while (true)
 		{
-			uint64_t generated_value = generate_random_prime(min_val, coprime - 1);
+			uint64_t generated_value = generate_prime_number(min_val, coprime - 1);
 
 			if (gcd(coprime, generated_value) == 1)
 			{
@@ -172,8 +156,8 @@ const std::string& rsa_encrypter::get_public_key() const
 
 void rsa_encrypter::_generate_keys()
 {
-	uint64_t _p = _rsa_utils::generate_random_prime(MIN_PRIME_VALUE, MAX_PRIME_VALUE);
-	uint64_t _q = _rsa_utils::generate_random_prime(MIN_PRIME_VALUE, MAX_PRIME_VALUE, _p);
+	uint64_t _p = _rsa_utils::generate_prime_number(MIN_PRIME_VALUE, MAX_PRIME_VALUE);
+	uint64_t _q = _rsa_utils::generate_prime_number(MIN_PRIME_VALUE, MAX_PRIME_VALUE, _p);
 
 	uint64_t module = _p * _q;
 	uint64_t theta = (_p - 1) * (_q - 1);

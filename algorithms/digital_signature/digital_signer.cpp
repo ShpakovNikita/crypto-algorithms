@@ -8,6 +8,7 @@
 #include <iostream>
 
 #include "gost_hash.hpp"
+#include "prime_utils.hpp"
 
 constexpr uint64_t KEY_ALIGN = 64;
 constexpr uint64_t HASH_EXPECTED_SIZE = 256;
@@ -16,51 +17,6 @@ const std::string DEFAULT_HASH_KEY = "12345678900987654321qwertyuiopas";
 
 namespace _signer_utils
 {
-	// implement this someday to speedup and generate 2048 bit primes https://github.com/cslarsen/miller-rabin
-	bool is_prime(big_unsigned n, uint64_t tests_count = 10)
-	{
-		if (n == 2 || n == 3)
-		{
-			return true;
-		}
-		else if (n <= 1 || n % 2 == 0)
-		{
-			return false;
-		}
-
-		big_unsigned s = 0, r = n - 1;
-		while (r % 2 == 0)
-		{
-			s += 1;
-			r /= 2;
-		}
-
-		for (uint64_t i = 0; i < tests_count; ++i)
-		{
-			big_unsigned a = rand_int(2, n - 1);
-			big_unsigned x = modexp(a, r, n);
-			if (x != 1 && x != n - 1)
-			{
-				big_unsigned j = 1;
-				while (j < s && x != n - 1)
-				{
-					x = modexp(x, 2, n);
-					if (x == 1)
-					{
-						return false;
-					}
-					j += 1;
-				}
-				if (x != n - 1)
-				{
-					return false;
-				}
-			}
-		}
-
-		return true;
-	}
-
 	big_unsigned generate_multiplicate_order(big_unsigned p, big_unsigned q)
 	{
 		big_unsigned g = 1, h = 2;
@@ -73,55 +29,12 @@ namespace _signer_utils
 		return g;
 	}
 
-	big_unsigned generate_prime_candidate(uint64_t bit_length)
-	{
-		std::vector<uint8_t> bits;
-		bits.resize(bit_length);
-
-		std::random_device rd;
-		std::mt19937 gen(rd());
-		std::uniform_int_distribution<unsigned long long> num_dist(0, 1);
-
-		for (uint64_t i = 0; i < bit_length; ++i)
-		{
-			bits[i] = static_cast<uint8_t>(num_dist(gen));
-		}
-
-		bits[0] = 1;
-		bits[bit_length - 1] = 1;
-
-		big_unsigned result = 0;
-
-		for (uint64_t i = 0; i < bit_length; ++i)
-		{
-			// optimization
-			if (bits[bit_length - i - 1] != 0)
-			{
-				const big_unsigned two = 2;
-				result += pow(two, i);
-			}
-		}
-
-		return result;
-	}
-
-	big_unsigned generate_prime_number(uint64_t bit_length)
-	{
-		big_unsigned prime;
-		do
-		{
-			prime = generate_prime_candidate(bit_length);
-		} while (!is_prime(prime));
-
-		return prime;
-	}
-
 	big_unsigned generate_prime_number_with_divider(big_unsigned divider)
 	{
 		big_unsigned k = pow(big_unsigned(2), HASH_EXPECTED_SIZE - HASH_EXPECTED_SIZE);
 		big_unsigned result = divider * k + 1;
 
-		while (!is_prime(result))
+		while (!prime_utils::is_prime(result))
 		{
 			++k;
 			result = divider * k + 1;
@@ -218,7 +131,7 @@ bool digital_signer::verify_message(const std::string& message) const
 
 digital_signer::digital_signer()
 {
-	_q = _signer_utils::generate_prime_number(HASH_EXPECTED_SIZE);
+	_q = prime_utils::generate_prime_number(HASH_EXPECTED_SIZE);
 	_p = _signer_utils::generate_prime_number_with_divider(_q);
 	_g = _signer_utils::generate_multiplicate_order(_p, _q);
 

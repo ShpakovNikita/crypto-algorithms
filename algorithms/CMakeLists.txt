@@ -8,10 +8,8 @@ function(buildAlgorithm ALGO_NAME)
     file(GLOB_RECURSE HEADERS ${ALGO_FOLDER}/*.hpp ${ALGO_FOLDER}/*.h)
 	file(GLOB SOURCE *.cpp ${HEADERS} ${ALGO_FOLDER}/*.cpp)
     
-    if(${ALGO_NAME} STREQUAL digital_signature)
-		file(GLOB ADD_SOURCE "../external/bigint/*.cc")
-		SET(SOURCE ${SOURCE} ${ADD_SOURCE})
-	endif()
+    file(GLOB ADD_SOURCE "../external/bigint/*.cc")
+    SET(SOURCE ${SOURCE} ${ADD_SOURCE})
     
     add_executable(${ALGO_NAME} ${SOURCE})
     
@@ -29,10 +27,6 @@ set(ALGORITHMS
     rsa
     feistel_gost
     hash_gost
-    digital_signature
-)
-
-set(WALL_IGNORE
     digital_signature
 )
 
