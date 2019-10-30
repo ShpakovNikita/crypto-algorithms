@@ -7,7 +7,6 @@
 #include <iomanip>
 #include <sstream>
 #include <iostream>
-#include "BigIntegerLibrary.hh"
 #include "gost_hash.hpp"
 
 constexpr uint64_t MAX_PRIME_VALUE = std::numeric_limits<uint8_t>::max();
@@ -15,8 +14,6 @@ constexpr uint64_t MIN_PRIME_VALUE = std::numeric_limits<uint8_t>::max() / 2;
 constexpr uint64_t KEY_ALIGN = 8;
 
 const std::string DEFAULT_HASH_KEY = "12345678900987654321qwertyuiopas";
-
-using big_unsigned = BigUnsigned;
 
 namespace _signer_utils
 {
@@ -128,6 +125,42 @@ namespace _signer_utils
 
 		return prime;
 	}
+    
+    std::tuple<big_unsigned, big_unsigned, big_unsigned> generate_k_s(big_unsigned q, big_unsigned p, big_unsigned g)
+    {
+        big_unsigned k = 0, r = 0, s = 0;
+        
+        while (true)
+        {
+            r = modexp(q, k, p) % q;
+            if (r == 0)
+            {
+                ++k;
+                continue;
+            }
+            
+            /*
+            while (r == 0)
+            {
+                big_unsigned r = modexp(q, k, p) % q;
+                ++k;
+            }
+            
+            return {k - 1, r};
+            */
+            
+        }
+        
+        return {};
+        // return {k - 1, r};
+             
+    }
+    
+    big_unsigned generate_s(const std::string& hash, big_unsigned secret_key, big_unsigned r)
+    {
+        return {};
+    }
+
 
 	[[ deprecated ]]
 	uint64_t generate_random_prime(uint64_t min_val, uint64_t max_val, uint64_t ignore_prime = 0)
@@ -256,6 +289,12 @@ std::string digital_signer::sign_message(const std::string& message) const
 	big_unsigned secret_key = rand_int(0, q);
 	big_unsigned public_key = modexp(g, secret_key, p);
 
+    
+    auto [k, r] = _signer_utils::generate_k(q, p, g);
+    auto s = _signer_utils::generate_s(generated_hash, secret_key, r);
+    // _public_keys.insert(std::make_pair(generated_hash, bigUnsignedToString(public_key)));
+    // _private_keys.insert(std::make_pair(generated_hash, bigUnsignedToString(secret_key)));
+    
 	auto test = bigUnsignedToString(g);
 	auto [d, module] = _signer_utils::string_to_key("" /*_private_key*/);
 

@@ -4,6 +4,10 @@
 #include <vector>
 #include <unordered_map>
 
+#include "BigIntegerLibrary.hh"
+
+using big_unsigned = BigUnsigned;
+
 class digital_signer
 {
 public:
@@ -25,4 +29,5 @@ private:
 
 	std::unordered_map<std::string, std::string> _private_keys;
 	std::unordered_map<std::string, std::string> _public_keys;
+    std::unordered_map<std::string, big_unsigned> _signatures;
 };

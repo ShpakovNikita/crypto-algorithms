@@ -298,8 +298,8 @@ std::vector<std::string> des_encrypter::_build_message_blocks(const std::string&
 
 std::string des_encrypter::_try_remove_padding(const std::string& message)
 {
-	char padding_size = message[message.size() - 1];
-	if (padding_size < BLOCK_SIZE)
+	uint8_t padding_size = message[message.size() - 1];
+	if (padding_size < static_cast<uint8_t>(BLOCK_SIZE))
 	{
 		return message.substr(0, message.size() - padding_size);
 	}

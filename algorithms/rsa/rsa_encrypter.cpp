@@ -20,7 +20,7 @@ namespace _rsa_utils
 			return false;
 		}
 
-		for (int i = 2; i < n; i++)
+		for (uint64_t i = 2; i < n; ++i)
 		{
 			if (n % i == 0)
 			{
@@ -99,7 +99,7 @@ namespace _rsa_utils
 	uint64_t exp_by_module(uint64_t symbol, uint64_t key_exp, uint64_t module)
 	{
 		uint64_t result = symbol;
-		for (int i = 0; i < key_exp - 1; ++i)
+		for (uint64_t i = 0; i < key_exp - 1; ++i)
 		{
 			result = (result * symbol) % module;
 		}
