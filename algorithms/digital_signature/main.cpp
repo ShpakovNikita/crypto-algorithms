@@ -21,7 +21,7 @@ TEST_CASE_BEGIN(signer_base_sign_verify)
 	std::string message = "Lorem ipsum dolor sit amet, consectetur adipiscing elit";
 
 	digital_signer signer;
-	std::cout << "initial name " << message << std::endl;
+	std::cout << "initial message to sign " << message << std::endl;
 
 	std::string signature = signer.sign_message(message);
 	std::cout << "signature " << signature << std::endl;
@@ -31,6 +31,8 @@ TEST_CASE_BEGIN(signer_base_sign_verify)
 
 	[[maybe_unused]]
 	bool verified = signer.verify_message(message);
+
+	std::cout << "is signature verified? " << verified << std::endl;
 
 	assert(verified);
 }

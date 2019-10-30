@@ -17,7 +17,7 @@ void case_name() \
 	++tests_passed; \
 }
 
-TEST_CASE_BEGIN(hash_base_encrypt_decrypt)
+TEST_CASE_BEGIN(hash_base_message)
 {
 	std::string message = "secretKDAeAAet_ksedset_kssJhin_k";
 
@@ -32,7 +32,7 @@ TEST_CASE_BEGIN(hash_base_encrypt_decrypt)
 }
 TEST_CASE_END()
 
-TEST_CASE_BEGIN(hash_long_message_encrypt_decrypt)
+TEST_CASE_BEGIN(hash_long_message)
 {
 	std::string message = "secretKDAeAAet_ksedset_kssJhin_ksecretKDAeAAet_ksedset_kssJhin_ksecretKDAeAAet_ksedset_kssJhin_kdsdsdsds";
 
@@ -51,8 +51,8 @@ int main()
 {
 	try
 	{
-		hash_base_encrypt_decrypt();
-		hash_long_message_encrypt_decrypt();
+		hash_base_message();
+		hash_long_message();
 
 		std::cerr << tests_passed << " tests passed!" << std::endl;
 	}
