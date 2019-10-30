@@ -23,12 +23,13 @@ TEST_CASE_BEGIN(signer_base_sign_verify)
 	digital_signer signer;
 	std::cout << "initial name " << message << std::endl;
 
-	std::string decrypted = signer.sign_message(message);
-	std::cout << "decrypted name " << decrypted << std::endl;
+	std::string signature = signer.sign_message(message);
+	std::cout << "signature " << signature << std::endl;
 
-	const std::string& public_key = signer.get_public_key(message);
+	const std::string& public_key = signer.get_public_key();
 	std::cout << "public key " << public_key << std::endl;
 
+	[[maybe_unused]]
 	bool verified = signer.verify_message(message);
 
 	assert(verified);

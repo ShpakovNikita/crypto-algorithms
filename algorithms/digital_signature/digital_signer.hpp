@@ -22,11 +22,11 @@ public:
 	std::string sign_message(const std::string& message);
 	bool verify_message(const std::string& message) const;
 
-	const std::string& get_public_key(const std::string& message) const;
+	std::string get_public_key() const;
 
 private:
-	std::unordered_map<std::string, std::string> _private_keys;
-	std::unordered_map<std::string, std::string> _public_keys;
+	big_unsigned _private_key;
+	big_unsigned _public_key;
 
 	// TODO: change on string
     std::unordered_map<std::string, std::tuple<big_unsigned, big_unsigned>> _signatures;

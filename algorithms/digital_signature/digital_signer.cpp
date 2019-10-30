@@ -18,7 +18,58 @@ const std::string DEFAULT_HASH_KEY = "12345678900987654321qwertyuiopas";
 
 namespace _signer_utils
 {
-	bool is_prime(big_unsigned n, uint64_t tests_count = 127)
+	bool miillerTest(big_unsigned d, big_unsigned n)
+	{
+		// Pick a random number in [2..n-2] 
+		// Corner cases make sure that n > 4 
+
+		const big_unsigned two = 2;
+		big_unsigned a = two + big_unsigned(rand()) % (n - 4);
+
+		// Compute a^d % n 
+		big_unsigned x = modexp(a, d, n);
+
+		if (x == 1 || x == n - 1)
+			return true;
+
+		// Keep squaring x while one of the following doesn't 
+		// happen 
+		// (i)   d does not reach n-1 
+		// (ii)  (x^2) % n is not 1 
+		// (iii) (x^2) % n is not n-1 
+		while (d != n - 1)
+		{
+			x = modexp(x, x, n);
+			d *= 2;
+
+			if (x == 1)      return false;
+			if (x == n - 1)    return true;
+		}
+
+		// Return composite 
+		return false;
+	}
+
+	bool isPrime(big_unsigned n, uint64_t k = 4)
+	{
+		// Corner cases 
+		if (n <= 1 || n == 4)  return false;
+		if (n <= 3) return true;
+
+		// Find r such that n = 2^d * r + 1 for some r >= 1 
+		big_unsigned d = n - 1;
+		while (d % 2 == 0)
+			d /= 2;
+
+		// Iterate given nber of 'k' times 
+		for (uint64_t i = 0; i < k; i++)
+			if (!miillerTest(d, n))
+				return false;
+
+		return true;
+	}
+
+	bool is_prime(big_unsigned n, uint64_t tests_count = 10)
 	{
 		if (n == 2 || n == 3)
 		{
@@ -108,8 +159,20 @@ namespace _signer_utils
 		return result;
 	}
 
+	big_unsigned generate_prime_number(uint64_t bit_length)
+	{
+		big_unsigned prime;
+		do
+		{
+			prime = generate_prime_candidate(bit_length);
+		} while (!is_prime(prime));
+
+		return prime;
+	}
+
 	big_unsigned generate_prime_number_with_divider(big_unsigned divider)
 	{
+		/*
 		big_unsigned result = divider;
 
 		do
@@ -118,23 +181,23 @@ namespace _signer_utils
 		} while (!is_prime(result + 1));
 
 		return result + 1;
-	}
+		*/
+		big_unsigned k = pow(big_unsigned(2), HASH_EXPECTED_SIZE - HASH_EXPECTED_SIZE);
+		big_unsigned result = divider * k + 1;
 
-	big_unsigned generate_prime_number(uint64_t bit_length)
-	{
-		big_unsigned prime;
-		do 
+		while (!is_prime(result))
 		{
-			prime = generate_prime_candidate(bit_length);
-		} while (!is_prime(prime));
+			++k;
+			result = divider * k + 1;
+		}
 
-		return prime;
+		return result;
 	}
     
-	big_unsigned str_to_bigint(const std::string& bytes)
+	big_unsigned str_to_bigint(std::string bytes)
 	{
 		big_unsigned result = 0;
-
+		bytes[0] |= 0b1000000;
 		for (uint64_t i = 0; i < bytes.size(); ++i)
 		{
 			for (uint64_t j = 0; j < CHAR_BIT; ++j)
@@ -156,19 +219,26 @@ namespace _signer_utils
     std::tuple<big_unsigned, big_unsigned> generate_signature(const std::string& generated_hash, 
 		big_unsigned p, big_unsigned q, big_unsigned g, big_unsigned private_key)
     {
-        big_unsigned k = 1, r = 0, s = 0;
+        big_unsigned k = 1, r = 0, s = 0, x = 0;
 		big_unsigned hash_value = str_to_bigint(generated_hash);
+
+		auto hash_str = bigUnsignedToString(hash_value);
+
+		[[maybe_unused]]
+		bool test = hash_value < q;
 
         while (true)
         {
-            r = modexp(q, k, p) % q;
+			x = modexp(g, k, p);
+			r = x % q;
             if (r == 0)
             {
                 ++k;
                 continue;
             }
             
-            s = (modinv(k, q) * (hash_value + private_key * r)) % q;
+			// test without % q
+            s = (modinv(k, q) * (hash_value + private_key * r) % q);
 
 			if (s == 0)
 			{
@@ -209,6 +279,8 @@ bool digital_signer::verify_message(const std::string& message) const
 	std::string generated_hash = hash_generator.generate_hash(message);
 	big_unsigned hash_value = _signer_utils::str_to_bigint(generated_hash);
 
+	auto hash_str = bigUnsignedToString(hash_value);
+
 	auto signature_it = _signatures.find(generated_hash);
 	if (signature_it == _signatures.end())
 	{
@@ -220,7 +292,8 @@ bool digital_signer::verify_message(const std::string& message) const
 	big_unsigned w = modinv(s, q);
 	big_unsigned u_1 = (hash_value * w) % q;
 	big_unsigned u_2 = (r * w) % q;
-	big_unsigned v = ((modexp(g, u_1, p) * modexp(g, u_1, p)) % p) % q;
+	big_unsigned x = (modexp(g, u_1, p) * modexp(g, u_2, p)) % p;
+	big_unsigned v = x % q;
 
 	bool verified = v == r;
 	return verified;
@@ -231,6 +304,16 @@ digital_signer::digital_signer()
 	q = _signer_utils::generate_prime_number(HASH_EXPECTED_SIZE);
 	p = _signer_utils::generate_prime_number_with_divider(q);
 	g = _signer_utils::generate_multiplicate_order(p, q);
+
+	[[maybe_unused]]
+	bool test = (p - 1) % q == 0;
+
+	auto _q = bigUnsignedToString(q);
+	auto _p = bigUnsignedToString(p);
+	auto _g = bigUnsignedToString(g);
+
+	_private_key = rand_int(0, q);
+	_public_key = modexp(g, _private_key, p);
 }
 
 std::string digital_signer::sign_message(const std::string& message)
@@ -238,30 +321,18 @@ std::string digital_signer::sign_message(const std::string& message)
 	gost_hash hash_generator(DEFAULT_HASH_KEY);
 	std::string generated_hash = hash_generator.generate_hash(message);
 
-	big_unsigned private_key = rand_int(0, q);
-	big_unsigned public_key = modexp(g, private_key, p);
-
-    auto [r, s] = _signer_utils::generate_signature(generated_hash, p, q, g, private_key);
+    auto [r, s] = _signer_utils::generate_signature(generated_hash, p, q, g, _private_key);
 
 	std::string signature = _signer_utils::key_to_string(r, s);
 
-	_public_keys.insert({generated_hash, bigUnsignedToString(public_key)});
-	_private_keys.insert({generated_hash, bigUnsignedToString(private_key)});
 	_signatures.insert({ generated_hash, {r, s} });
 	
 	return signature;
 }
 
-const std::string& digital_signer::get_public_key(const std::string& message) const
+std::string digital_signer::get_public_key() const
 {
-	gost_hash hash_generator(DEFAULT_HASH_KEY);
-	auto it = _public_keys.find(hash_generator.generate_hash(message));
-	if (it != _public_keys.end())
-	{
-		return it->second;
-	}
-
-	throw invalid_key();
+	return bigUnsignedToString(_public_key);
 }
 
 const char* digital_signer::invalid_key::what() const throw ()
