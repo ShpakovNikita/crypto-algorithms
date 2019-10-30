@@ -9,8 +9,6 @@
 #include <iostream>
 #include "gost_hash.hpp"
 
-constexpr uint64_t MAX_PRIME_VALUE = std::numeric_limits<uint8_t>::max();
-constexpr uint64_t MIN_PRIME_VALUE = std::numeric_limits<uint8_t>::max() / 2;
 constexpr uint64_t KEY_ALIGN = 64;
 constexpr uint64_t HASH_EXPECTED_SIZE = 256;
 
