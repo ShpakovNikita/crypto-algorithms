@@ -16,52 +16,22 @@ void case_name() \
 	++tests_passed; \
 }
 
-TEST_CASE_BEGIN(cypher_base_encrypt_decrypt)
+TEST_CASE_BEGIN(signer_base_sign_verify)
 {
 	std::string message = "Lorem ipsum dolor sit amet, consectetur adipiscing elit";
 
-	digital_signer encrypter;
+	digital_signer signer;
 	std::cout << "initial name " << message << std::endl;
 
-	const std::string& public_key = encrypter.get_public_key();
-	std::cout << "public key " << public_key << std::endl;
-
-	std::string encrypted = digital_signer::encrypt(message, public_key);
-	std::cout << "encrypted name " << encrypted << std::endl;
-
-	assert(message != encrypted);
-
-	std::string decrypted = encrypter.decrypt(encrypted);
+	std::string decrypted = signer.sign_message(message);
 	std::cout << "decrypted name " << decrypted << std::endl;
 
-	assert(message == decrypted);
-}
-TEST_CASE_END()
+	const std::string& public_key = signer.get_public_key(message);
+	std::cout << "public key " << public_key << std::endl;
 
-TEST_CASE_BEGIN(cypher_base_stress)
-{
-	const char alphanum[] =
-		"0123456789"
-		"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-		"abcdefghijklmnopqrstuvwxyz";
+	bool verified = signer.verify_message(message);
 
-
-	for (uint64_t i = 0; i < 100; ++i)
-	{
-		std::string message;
-		message.resize(100);
-
-		for (uint64_t j = 0; j < 100; ++j) {
-			message[j] = alphanum[rand() % (sizeof(alphanum) - 1)];
-		}
-
-		digital_signer encrypter;
-		const std::string& public_key = encrypter.get_public_key();
-		std::string encrypted = digital_signer::encrypt(message, public_key);
-		assert(message != encrypted);
-		std::string decrypted = encrypter.decrypt(encrypted);
-		assert(message == decrypted);
-	}
+	assert(verified);
 }
 TEST_CASE_END()
 
@@ -69,8 +39,7 @@ int main()
 {
 	try
 	{
-		cypher_base_encrypt_decrypt();
-		cypher_base_stress();
+		signer_base_sign_verify();
 
 		std::cerr << tests_passed << " tests passed!" << std::endl;
 	}

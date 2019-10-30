@@ -1,4 +1,7 @@
 #include "BigIntegerAlgorithms.hh"
+#include "BigIntegerUtils.hh"
+#include "BigUnsigned.hh"
+#include <random>
 
 BigUnsigned gcd(BigUnsigned a, BigUnsigned b) {
 	BigUnsigned trash;
@@ -67,4 +70,47 @@ BigUnsigned modexp(const BigInteger &base, const BigUnsigned &exponent,
 		}
 	}
 	return ans;
+}
+
+BigUnsigned rand_int(const BigUnsigned& lower, const BigUnsigned& upper) {
+	auto lower_bound = lower.getLength(), upper_bound = upper.getLength();
+
+	std::random_device rd;
+	std::mt19937 gen(rd());
+	std::uniform_int_distribution<unsigned long long> main_result_dist(lower_bound, upper_bound);
+
+	const char alphanum[] =
+		"0123456789";
+	std::uniform_int_distribution<unsigned long long> num_dist(0, sizeof(alphanum) - 2);
+
+	BigUnsigned generated;
+
+	do 
+	{
+		uint64_t count = main_result_dist(gen);
+
+		std::string number;
+		number.resize(count);
+
+		for (uint64_t j = 0; j < count; ++j) {
+			uint64_t i = num_dist(gen);
+			number[j] = alphanum[i];
+		}
+
+		generated = stringToBigUnsigned(number);
+
+	} while (generated < lower || generated >= upper);
+
+	return generated;
+}
+
+BigUnsigned pow(const BigUnsigned& base, uint64_t exp)
+{
+	BigUnsigned result = 1;
+	for (uint64_t i = 0; i < exp; ++i)
+	{
+		result *= base;
+	}
+
+	return result;
 }

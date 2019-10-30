@@ -2,23 +2,27 @@
 
 #include <string>
 #include <vector>
+#include <unordered_map>
 
 class digital_signer
 {
 public:
-	static std::string encrypt(const std::string& message, const std::string& key);
+	struct invalid_key : public std::exception
+	{
+		const char* what() const throw ();
+	};
 
-	digital_signer();
+	digital_signer() = default;
 	~digital_signer() = default;
 
-	std::string decrypt(const std::string& message) const;
-	std::string encrypt(const std::string& message) const;
+	std::string sign_message(const std::string& message) const;
+	bool verify_message(const std::string& message) const;
 
-	const std::string& get_public_key() const;
+	const std::string& get_public_key(const std::string& message) const;
 
 private:
-	void _generate_keys();
+	void _generate_keys(const std::string& message_hash);
 
-	std::string _private_key;
-	std::string _public_key;
+	std::unordered_map<std::string, std::string> _private_keys;
+	std::unordered_map<std::string, std::string> _public_keys;
 };

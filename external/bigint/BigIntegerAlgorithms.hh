@@ -2,6 +2,7 @@
 #define BIGINTEGERALGORITHMS_H
 
 #include "BigInteger.hh"
+#include <stdint.h>
 
 /* Some mathematical algorithms for big integers.
  * This code is new and, as such, experimental. */
@@ -21,5 +22,11 @@ BigUnsigned modinv(const BigInteger &x, const BigUnsigned &n);
 // Returns (base ^ exponent) % modulus.
 BigUnsigned modexp(const BigInteger &base, const BigUnsigned &exponent,
 		const BigUnsigned &modulus);
+
+// returns random int in range;
+BigUnsigned rand_int(const BigUnsigned& lower, const BigUnsigned& upper);
+
+// returns power;
+BigUnsigned pow(const BigUnsigned& base, uint64_t exp);
 
 #endif
