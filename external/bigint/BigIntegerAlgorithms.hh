@@ -27,6 +27,7 @@ BigUnsigned modexp(const BigInteger &base, const BigUnsigned &exponent,
 BigUnsigned rand_int(const BigUnsigned& lower, const BigUnsigned& upper);
 
 // returns power;
-BigUnsigned pow(const BigUnsigned& base, uint64_t exp);
+BigUnsigned pow(BigUnsigned base, BigUnsigned exp);
+BigUnsigned pow(BigUnsigned base, uint64_t exp);
 
 #endif

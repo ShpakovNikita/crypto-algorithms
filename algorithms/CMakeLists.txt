@@ -15,13 +15,11 @@ function(buildAlgorithm ALGO_NAME)
     
     add_executable(${ALGO_NAME} ${SOURCE})
     
-    if(NOT ${ALGO_NAME} STREQUAL ${WALL_IGNORE})
-        if(MSVC)
-            target_compile_options(${ALGO_NAME} PRIVATE /W4 /WX)
-        else()
-            target_compile_options(${ALGO_NAME} PRIVATE -Wall -Wextra -pedantic -Werror)
-        endif()
-	endif()
+    if(MSVC)
+        target_compile_options(${ALGO_NAME} PRIVATE /W4 /WX)
+    else()
+        target_compile_options(${ALGO_NAME} PRIVATE -Wall -Wextra -pedantic -Werror)
+    endif()
     
     target_link_libraries(${ALGO_NAME} common)
 endfunction(buildAlgorithm)

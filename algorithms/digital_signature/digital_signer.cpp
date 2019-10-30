@@ -11,7 +11,8 @@
 
 constexpr uint64_t MAX_PRIME_VALUE = std::numeric_limits<uint8_t>::max();
 constexpr uint64_t MIN_PRIME_VALUE = std::numeric_limits<uint8_t>::max() / 2;
-constexpr uint64_t KEY_ALIGN = 8;
+constexpr uint64_t KEY_ALIGN = 64;
+constexpr uint64_t HASH_EXPECTED_SIZE = 256;
 
 const std::string DEFAULT_HASH_KEY = "12345678900987654321qwertyuiopas";
 
@@ -78,9 +79,13 @@ namespace _signer_utils
 		std::vector<uint8_t> bits;
 		bits.resize(bit_length);
 
+		std::random_device rd;
+		std::mt19937 gen(rd());
+		std::uniform_int_distribution<unsigned long long> num_dist(0, 1);
+
 		for (uint64_t i = 0; i < bit_length; ++i)
 		{
-			bits[i] = rand() % 2;
+			bits[i] = static_cast<uint8_t>(num_dist(gen));
 		}
 
 		bits[0] = 1;
@@ -93,8 +98,8 @@ namespace _signer_utils
 			// optimization
 			if (bits[bit_length - i - 1] != 0)
 			{
-				big_unsigned two = 2;
-				result += big_unsigned(bits[bit_length - i - 1]) * pow(two, i);
+				const big_unsigned two = 2;
+				result += pow(two, i);
 			}
 		}
 
@@ -126,10 +131,34 @@ namespace _signer_utils
 		return prime;
 	}
     
-    std::tuple<big_unsigned, big_unsigned, big_unsigned> generate_k_s(big_unsigned q, big_unsigned p, big_unsigned g)
+	big_unsigned str_to_bigint(const std::string& bytes)
+	{
+		big_unsigned result = 0;
+
+		for (uint64_t i = 0; i < bytes.size(); ++i)
+		{
+			for (uint64_t j = 0; j < CHAR_BIT; ++j)
+			{
+				// optimization
+				if (((bytes[i] >> j) & 1) != 0)
+				{
+					const big_unsigned two = 2;
+					result += pow(two, 256 - 1 - i * CHAR_BIT - j);
+				}
+			}
+		}
+
+		auto test = bigUnsignedToString(result);
+
+		return result;
+	}
+
+    std::tuple<big_unsigned, big_unsigned> generate_signature(const std::string& generated_hash, 
+		big_unsigned p, big_unsigned q, big_unsigned g, big_unsigned private_key)
     {
-        big_unsigned k = 0, r = 0, s = 0;
-        
+        big_unsigned k = 1, r = 0, s = 0;
+		big_unsigned hash_value = str_to_bigint(generated_hash);
+
         while (true)
         {
             r = modexp(q, k, p) % q;
@@ -139,77 +168,21 @@ namespace _signer_utils
                 continue;
             }
             
-            /*
-            while (r == 0)
-            {
-                big_unsigned r = modexp(q, k, p) % q;
-                ++k;
-            }
-            
-            return {k - 1, r};
-            */
-            
+            s = (modinv(k, q) * (hash_value + private_key * r)) % q;
+
+			if (s == 0)
+			{
+				++k;
+				continue;
+			}
+
+			break;
         }
         
-        return {};
-        // return {k - 1, r};
-             
-    }
-    
-    big_unsigned generate_s(const std::string& hash, big_unsigned secret_key, big_unsigned r)
-    {
-        return {};
+        return {r, s};
     }
 
-
-	[[ deprecated ]]
-	uint64_t generate_random_prime(uint64_t min_val, uint64_t max_val, uint64_t ignore_prime = 0)
-	{
-		std::mt19937 seed(static_cast<uint32_t>(time(0)));
-		std::uniform_int_distribution<uint64_t> generator(min_val, max_val);
-
-		while (true)
-		{
-			uint64_t generated_value = generator(seed);
-
-			if (generated_value != ignore_prime && is_prime(0 /*generated_value*/))
-			{
-				return generated_value;
-			}
-		}
-	}
-
-	uint64_t gcd(uint64_t a, uint64_t b)
-	{
-		while (a > 0 && b > 0)
-		{
-			if (a > b)
-			{
-				a %= b;
-			}
-			else
-			{
-				b %= a;
-			}
-		}
-
-		return a + b;
-	}
-
-	uint64_t generate_coprime_number(uint64_t min_val, uint64_t coprime)
-	{
-		while (true)
-		{
-			uint64_t generated_value = generate_random_prime(min_val, coprime - 1);
-
-			if (gcd(coprime, generated_value) == 1)
-			{
-				return generated_value;
-			}
-		}
-	}
-
-	std::string key_to_string(int64_t key_exp, int64_t module)
+	std::string key_to_string(big_unsigned key_exp, big_unsigned module)
 	{
 		std::stringstream stream;
 		stream << std::setfill('0') << std::setw(KEY_ALIGN) << std::right << std::hex << module;
@@ -220,36 +193,13 @@ namespace _signer_utils
 		return result;
 	}
 
-	std::tuple<int64_t, int64_t> string_to_key(const std::string& key)
+	std::tuple<big_unsigned, big_unsigned> string_to_key(const std::string& key)
 	{
-		uint64_t module = std::stoi(key.substr(0, KEY_ALIGN), nullptr, 16);
-		uint64_t key_exp = std::stoi(key.substr(KEY_ALIGN, KEY_ALIGN), nullptr, 16);
+		// TODO: proper conversion
+		big_unsigned module = std::stoi(key.substr(0, KEY_ALIGN), nullptr, 16);
+		big_unsigned key_exp = std::stoi(key.substr(KEY_ALIGN, KEY_ALIGN), nullptr, 16);
 
 		return {key_exp, module};
-	}
-
-	uint64_t exp_by_module(uint64_t symbol, uint64_t key_exp, uint64_t module)
-	{
-		uint64_t result = symbol;
-		for (int i = 0; i < key_exp - 1; ++i)
-		{
-			result = (result * symbol) % module;
-		}
-		
-		return result;
-	}
-
-	uint64_t extended_gcd(uint64_t a, uint64_t b, int64_t& x, int64_t& y) {
-		if (a == 0) {
-			x = 0; y = 1;
-			return b;
-		}
-
-		int64_t prev_x, prev_y;
-		uint64_t d = extended_gcd(b % a, a, prev_x, prev_y);
-		x = prev_y - (b / a) * prev_x;
-		y = prev_x;
-		return d;
 	}
 }
 
@@ -257,64 +207,49 @@ bool digital_signer::verify_message(const std::string& message) const
 {
 	gost_hash hash_generator(DEFAULT_HASH_KEY);
 	std::string generated_hash = hash_generator.generate_hash(message);
+	big_unsigned hash_value = _signer_utils::str_to_bigint(generated_hash);
 
-	auto private_key_it = _private_keys.find(generated_hash);
-	if (private_key_it == _private_keys.end())
+	auto signature_it = _signatures.find(generated_hash);
+	if (signature_it == _signatures.end())
 	{
 		return false;
 	}
-	
-	auto [key_exp, module] = _signer_utils::string_to_key(private_key_it->second);
-	std::stringstream encryption_stream;
 
-	for (const char symbol : message)
-	{
-		uint64_t encrypted = _signer_utils::exp_by_module(symbol, key_exp, module);
-		encryption_stream << std::hex << encrypted << " ";
-	}
+	auto& [r, s] = signature_it->second;
 
-	std::string encrypted_message(encryption_stream.str());
-	return true;
+	big_unsigned w = modinv(s, q);
+	big_unsigned u_1 = (hash_value * w) % q;
+	big_unsigned u_2 = (r * w) % q;
+	big_unsigned v = ((modexp(g, u_1, p) * modexp(g, u_1, p)) % p) % q;
+
+	bool verified = v == r;
+	return verified;
 }
 
-std::string digital_signer::sign_message(const std::string& message) const
+digital_signer::digital_signer()
+{
+	q = _signer_utils::generate_prime_number(HASH_EXPECTED_SIZE);
+	p = _signer_utils::generate_prime_number_with_divider(q);
+	g = _signer_utils::generate_multiplicate_order(p, q);
+}
+
+std::string digital_signer::sign_message(const std::string& message)
 {
 	gost_hash hash_generator(DEFAULT_HASH_KEY);
 	std::string generated_hash = hash_generator.generate_hash(message);
 
-	big_unsigned q = _signer_utils::generate_prime_number(256);
-	big_unsigned p = _signer_utils::generate_prime_number_with_divider(q);
-	big_unsigned g = _signer_utils::generate_multiplicate_order(p, q);
+	big_unsigned private_key = rand_int(0, q);
+	big_unsigned public_key = modexp(g, private_key, p);
 
-	big_unsigned secret_key = rand_int(0, q);
-	big_unsigned public_key = modexp(g, secret_key, p);
+    auto [r, s] = _signer_utils::generate_signature(generated_hash, p, q, g, private_key);
 
-    
-    auto [k, r] = _signer_utils::generate_k(q, p, g);
-    auto s = _signer_utils::generate_s(generated_hash, secret_key, r);
-    // _public_keys.insert(std::make_pair(generated_hash, bigUnsignedToString(public_key)));
-    // _private_keys.insert(std::make_pair(generated_hash, bigUnsignedToString(secret_key)));
-    
-	auto test = bigUnsignedToString(g);
-	auto [d, module] = _signer_utils::string_to_key("" /*_private_key*/);
+	std::string signature = _signer_utils::key_to_string(r, s);
 
-	std::stringstream encryption_stream(message);
-	std::string decrypted_message;
-
-	// TODO: remove after CMake external dependencies add
-	big_unsigned headers_test = stringToBigUnsigned("100500100500100500100500100500100500100500100500");
-	std::cout << headers_test << std::endl;
-
-	std::string encoded_symbol_string;
-
-	while (encryption_stream >> encoded_symbol_string)
-	{
-		uint64_t decrypted_symbol = std::stoi(encoded_symbol_string, nullptr, 16);
-		decrypted_symbol = _signer_utils::exp_by_module(decrypted_symbol, d, module);
-		decrypted_message += static_cast<char>(decrypted_symbol);
-	}
+	_public_keys.insert({generated_hash, bigUnsignedToString(public_key)});
+	_private_keys.insert({generated_hash, bigUnsignedToString(private_key)});
+	_signatures.insert({ generated_hash, {r, s} });
 	
-	return decrypted_message;
+	return signature;
 }
 
 const std::string& digital_signer::get_public_key(const std::string& message) const
@@ -327,27 +262,6 @@ const std::string& digital_signer::get_public_key(const std::string& message) co
 	}
 
 	throw invalid_key();
-}
-
-void digital_signer::_generate_keys(const std::string& message_hash)
-{
-	uint64_t _p = _signer_utils::generate_random_prime(MIN_PRIME_VALUE, MAX_PRIME_VALUE);
-	uint64_t _q = _signer_utils::generate_random_prime(MIN_PRIME_VALUE, MAX_PRIME_VALUE, _p);
-
-	uint64_t module = _p * _q;
-	uint64_t theta = (_p - 1) * (_q - 1);
-
-	uint64_t key_exp = _signer_utils::generate_coprime_number(MIN_PRIME_VALUE, theta);
-
-	int64_t d = 0, y_k = 0;
-	_signer_utils::extended_gcd(key_exp, theta, d, y_k);
-
-	if (d < 0) {
-		d += theta;
-	}
-
-	// _public_key = _rsa_utils::key_to_string(key_exp, module);
-	// _private_key = _rsa_utils::key_to_string(d, module);
 }
 
 const char* digital_signer::invalid_key::what() const throw ()

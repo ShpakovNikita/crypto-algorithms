@@ -16,18 +16,23 @@ public:
 		const char* what() const throw ();
 	};
 
-	digital_signer() = default;
+	digital_signer();
 	~digital_signer() = default;
 
-	std::string sign_message(const std::string& message) const;
+	std::string sign_message(const std::string& message);
 	bool verify_message(const std::string& message) const;
 
 	const std::string& get_public_key(const std::string& message) const;
 
 private:
-	void _generate_keys(const std::string& message_hash);
-
 	std::unordered_map<std::string, std::string> _private_keys;
 	std::unordered_map<std::string, std::string> _public_keys;
-    std::unordered_map<std::string, big_unsigned> _signatures;
+
+	// TODO: change on string
+    std::unordered_map<std::string, std::tuple<big_unsigned, big_unsigned>> _signatures;
+
+	// domain params
+	big_unsigned p = 0;
+	big_unsigned q = 0;
+	big_unsigned g = 0;
 };

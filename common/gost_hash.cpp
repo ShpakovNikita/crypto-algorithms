@@ -362,13 +362,7 @@ std::string gost_hash::_internal_run(const std::string& message) const
 		auto block_bitset = _bit_utils::bytes_to_bitset<HASH_BLOCK_SIZE>(_bit_utils::stob(block));
 		result_block = _hash_block(result_block, block_bitset);
 		std::tie(std::ignore, control_sum) = _bit_utils::add_mod_2<HASH_BLOCK_SIZE>(control_sum, block_bitset);
-
-		std::string def1 = _bit_utils::bitset_to_bytes<HASH_BLOCK_SIZE>(result_block);
-		std::string def2 = _bit_utils::bitset_to_bytes<HASH_BLOCK_SIZE>(control_sum);
 	}
-
-	std::string def1 = _bit_utils::bitset_to_bytes<HASH_BLOCK_SIZE>(result_block);
-	std::string def2 = _bit_utils::bitset_to_bytes<HASH_BLOCK_SIZE>(control_sum);
 
 	auto len_bitset = _bit_utils::bytes_to_bitset<HASH_BLOCK_SIZE>(_bit_utils::int_to_bytes(message_len).data());
 

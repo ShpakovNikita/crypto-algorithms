@@ -104,13 +104,26 @@ BigUnsigned rand_int(const BigUnsigned& lower, const BigUnsigned& upper) {
 	return generated;
 }
 
-BigUnsigned pow(const BigUnsigned& base, uint64_t exp)
+BigUnsigned pow(BigUnsigned base, BigUnsigned exp)
 {
 	BigUnsigned result = 1;
-	for (uint64_t i = 0; i < exp; ++i)
-	{
-		result *= base;
+	while (exp != 0) {
+		if (exp % 2 == 1)
+			result *= base;
+		base *= base;
+		exp >>= 1;
 	}
+	return result;
+}
 
+BigUnsigned pow(BigUnsigned base, uint64_t exp)
+{
+	BigUnsigned result = 1;
+	while (exp) {
+		if (exp & 1)
+			result *= base;
+		base *= base;
+		exp >>= 1;
+	}
 	return result;
 }
