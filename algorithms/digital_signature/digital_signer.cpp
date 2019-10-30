@@ -18,6 +18,7 @@ const std::string DEFAULT_HASH_KEY = "12345678900987654321qwertyuiopas";
 
 namespace _signer_utils
 {
+	// implement this someday to speedup and generate 2048 bit primes https://github.com/cslarsen/miller-rabin
 	bool is_prime(big_unsigned n, uint64_t tests_count = 10)
 	{
 		if (n == 2 || n == 3)
