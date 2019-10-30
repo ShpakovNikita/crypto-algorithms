@@ -28,11 +28,10 @@ private:
 	big_unsigned _private_key;
 	big_unsigned _public_key;
 
-	// TODO: change on string
     std::unordered_map<std::string, std::tuple<big_unsigned, big_unsigned>> _signatures;
 
 	// domain params
-	big_unsigned p = 0;
-	big_unsigned q = 0;
-	big_unsigned g = 0;
+	big_unsigned _p = 0;
+	big_unsigned _q = 0;
+	big_unsigned _g = 0;
 };
