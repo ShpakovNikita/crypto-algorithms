@@ -63,7 +63,19 @@ namespace _signer_utils
 
 		return true;
 	}
-	
+
+	big_unsigned generate_multiplicate_order(big_unsigned p, big_unsigned q)
+	{
+		big_unsigned g = 1, h = 2;
+		while (g == 1)
+		{
+			g = modexp(h, (p - 1) / q, p);
+			++h;
+		}
+
+		return g;
+	}
+
 	big_unsigned generate_prime_candidate(uint64_t bit_length)
 	{
 		std::vector<uint8_t> bits;
@@ -92,6 +104,18 @@ namespace _signer_utils
 		auto test = bigUnsignedToString(result);
 
 		return result;
+	}
+
+	big_unsigned generate_prime_number_with_divider(big_unsigned divider)
+	{
+		big_unsigned result = divider;
+
+		do
+		{
+			result += divider;
+		} while (!is_prime(result + 1));
+
+		return result + 1;
 	}
 
 	big_unsigned generate_prime_number(uint64_t bit_length)
@@ -225,9 +249,14 @@ std::string digital_signer::sign_message(const std::string& message) const
 	gost_hash hash_generator(DEFAULT_HASH_KEY);
 	std::string generated_hash = hash_generator.generate_hash(message);
 
-	big_unsigned test = _signer_utils::generate_prime_number(256);
-	auto test2 = bigUnsignedToString(test);
+	big_unsigned q = _signer_utils::generate_prime_number(256);
+	big_unsigned p = _signer_utils::generate_prime_number_with_divider(q);
+	big_unsigned g = _signer_utils::generate_multiplicate_order(p, q);
 
+	big_unsigned secret_key = rand_int(0, q);
+	big_unsigned public_key = modexp(g, secret_key, p);
+
+	auto test = bigUnsignedToString(g);
 	auto [d, module] = _signer_utils::string_to_key("" /*_private_key*/);
 
 	std::stringstream encryption_stream(message);
