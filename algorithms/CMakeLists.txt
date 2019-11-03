@@ -28,6 +28,7 @@ set(ALGORITHMS
     feistel_gost
     hash_gost
     digital_signature
+    elliptical_signature
 )
 
 # Build all algorithms
