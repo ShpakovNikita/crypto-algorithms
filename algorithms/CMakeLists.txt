@@ -29,6 +29,7 @@ set(ALGORITHMS
     hash_gost
     digital_signature
     elliptical_signature
+    blowfish
 )
 
 # Build all algorithms
