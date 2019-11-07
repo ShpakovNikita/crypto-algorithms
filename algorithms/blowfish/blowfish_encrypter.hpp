@@ -38,13 +38,15 @@ private:
 	static std::string _check_key(const std::string& key);
 	static std::string _construct_padding_message(const std::string& message);
 
-	static std::bitset<BLOCK_SIZE * CHAR_BIT / 2> _substitude_block(const std::bitset<(BLOCK_SIZE - 2) * CHAR_BIT>& block);
+	static std::tuple<uint32_t, uint32_t> _encrypt(uint32_t left_block, uint32_t right_block);
+	static std::tuple<uint32_t, uint32_t> _decrypt(uint32_t left_block, uint32_t right_block);
 
-	std::bitset<BLOCK_SIZE * CHAR_BIT> _encrypt_block(const std::string& block, _e_action action) const;
+	static uint32_t blowfish_func(uint32_t x);
+
 	std::string _internal_run(const std::string& message, _e_action action) const;
 
 	void _generate_keys();
 
 	std::string _key;
-	std::vector<std::bitset<(BLOCK_SIZE - 2) * CHAR_BIT>> _generated_keys;
+	std::vector<uint32_t> _generated_keys;
 };

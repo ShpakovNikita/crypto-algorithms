@@ -14,6 +14,39 @@ namespace bit_utils
 		return bytes_array;
 	}
 
+	inline uint64_t string_to_int64(const std::string& string_value)
+	{
+		uint64_t result_value = 0;
+
+		for (uint64_t i = 0; i < 8; ++i)
+		{
+			uint8_t current_byte = string_value[i];
+
+			result_value |= static_cast<uint64_t>(current_byte) << ((7 - i) * CHAR_BIT);
+		}
+
+		return result_value;
+	}
+
+	inline uint32_t string_to_int32(const std::string& string_value)
+	{
+		uint32_t result_value = 0;
+
+		for (uint64_t i = 0; i < 4; ++i)
+		{
+			uint8_t current_byte = string_value[i];
+
+			result_value |= static_cast<uint32_t>(current_byte) << ((3 - i) * CHAR_BIT);
+		}
+
+		return result_value;
+	}
+
+	inline std::string bytes_to_string(const std::vector<uint8_t>& bytes)
+	{
+		return std::string((const char*)bytes.data());
+	}
+
 	inline uint8_t* stob(const std::string& str)
 	{
 		return reinterpret_cast<uint8_t*>(const_cast<char*>(str.data()));

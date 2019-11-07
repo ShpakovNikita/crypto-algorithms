@@ -11,7 +11,7 @@ TEST_CASE_BEGIN(cypher_base_encrypt_decrypt)
 	std::string message = "Hello wo";
 	std::string key = "secret_k";
 
-	des_encrypter encrypter(key);
+	blowfish_encrypter encrypter(key);
 	std::cout << "initial name " << message << std::endl;
 
 	std::string encrypted = encrypter.encrypt(message);
@@ -31,7 +31,7 @@ TEST_CASE_BEGIN(cypher_long_message_encrypt_decrypt)
 	std::string message = "Lorem ipsum dolor sit amet, consectetur adipiscing elit";
 	std::string key = "secret_s";
 
-	des_encrypter encrypter(key);
+	blowfish_encrypter encrypter(key);
 	std::cout << "initial name " << message << std::endl;
 
 	std::string encrypted = encrypter.encrypt(message);
@@ -55,7 +55,7 @@ int main()
 
 		std::cerr << tests_passed << " tests passed!" << std::endl;
 	}
-	catch (const des_encrypter::invalid_key & e)
+	catch (const blowfish_encrypter::invalid_key & e)
 	{
 		std::cerr << tests_passed << " tests passed, before error occurred" << std::endl;
 
