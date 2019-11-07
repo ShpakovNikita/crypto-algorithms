@@ -9,7 +9,9 @@ namespace bit_utils
 	{
 		std::vector<uint8_t> bytes_array(32);
 		for (uint64_t i = 0; i < 32; i++)
+		{
 			bytes_array[31 - i] = static_cast<uint8_t>(long_value >> (i * 8));
+		}
 
 		return bytes_array;
 	}
@@ -42,9 +44,16 @@ namespace bit_utils
 		return result_value;
 	}
 
-	inline std::string bytes_to_string(const std::vector<uint8_t>& bytes)
+	inline std::string int32_to_string(uint32_t value)
 	{
-		return std::string((const char*)bytes.data());
+		std::string result;
+
+		for (uint64_t i = 0; i < 4; i++)
+		{
+			result += static_cast<uint8_t>(0xff & (value >> ((3 - i) * CHAR_BIT)));
+		}
+
+		return result;
 	}
 
 	inline uint8_t* stob(const std::string& str)

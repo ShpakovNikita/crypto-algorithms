@@ -372,11 +372,11 @@ std::string blowfish_encrypter::_internal_run(const std::string& message, _e_act
 	}
 	
 	std::string result_message;
-	result_message.reserve(BLOCK_SIZE * result_blocks.size());
+	result_message.reserve(BLOCK_SIZE / 2 * result_blocks.size());
 	
 	for (uint32_t block : result_blocks)
 	{
-		result_message += bit_utils::bytes_to_string(bit_utils::int_to_bytes(block));
+		result_message += bit_utils::int32_to_string(block);
 	}
 
 	if (action == _e_action::decrypt)
