@@ -7,7 +7,7 @@
 #include "triple_des.hpp"
 #include "testing.hpp"
 
-TEST_CASE_BEGIN(cypher_base_encrypt_decrypt)
+TEST_CASE_BEGIN(cipher_base_encrypt_decrypt)
 {
 	std::string message = "Hello wo";
 	std::string key = "secret_k";
@@ -27,7 +27,7 @@ TEST_CASE_BEGIN(cypher_base_encrypt_decrypt)
 }
 TEST_CASE_END()
 
-TEST_CASE_BEGIN(cypher_long_message_encrypt_decrypt)
+TEST_CASE_BEGIN(cipher_long_message_encrypt_decrypt)
 {
 	std::string message = "Lorem ipsum dolor sit amet, consectetur adipiscing elit";
 	std::string key = "secret_s";
@@ -117,8 +117,8 @@ int main()
 {
 	try
 	{
-		cypher_base_encrypt_decrypt();
-		cypher_long_message_encrypt_decrypt();
+		cipher_base_encrypt_decrypt();
+		cipher_long_message_encrypt_decrypt();
 		triple_des_eee3_encrypt_decrypt();
 		triple_des_ede3_encrypt_decrypt();
 		triple_des_ede2_encrypt_decrypt();

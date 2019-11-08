@@ -16,7 +16,7 @@ void case_name() \
 	++tests_passed; \
 }
 
-TEST_CASE_BEGIN(cypher_base_encrypt_decrypt)
+TEST_CASE_BEGIN(cipher_base_encrypt_decrypt)
 {
 	std::string message = "Lorem ipsum dolor sit amet, consectetur adipiscing elit";
 
@@ -38,7 +38,7 @@ TEST_CASE_BEGIN(cypher_base_encrypt_decrypt)
 }
 TEST_CASE_END()
 
-TEST_CASE_BEGIN(cypher_base_stress)
+TEST_CASE_BEGIN(cipher_base_stress)
 {
 	const char alphanum[] =
 		"0123456789"
@@ -69,8 +69,8 @@ int main()
 {
 	try
 	{
-		cypher_base_encrypt_decrypt();
-		cypher_base_stress();
+		cipher_base_encrypt_decrypt();
+		cipher_base_stress();
 
 		std::cerr << tests_passed << " tests passed!" << std::endl;
 	}

@@ -6,7 +6,7 @@
 #include <functional>
 
 constexpr uint32_t ROUNDS_COUNT = 16;
-constexpr uint32_t KEY_LENGTH = 8;
+constexpr uint32_t KEY_LENGTH = 4;
 
 static std::vector<uint32_t> P =
 {
@@ -203,14 +203,6 @@ static std::vector<uint32_t> S_BOX_4 =
 	0xb74e6132L, 0xce77e25bL, 0x578fdfe3L, 0x3ac372e6L,
 };
 
-static std::vector<uint32_t> KEY_TEMP =
-{
-	0x4B7A70E9, 0xB5B32944, 0xDB75092E, 0xC4192623,
-	0xAD6EA6B0, 0x49A7DF7D, 0x9CEE60B8, 0x8FEDB266,
-	0xECAA8C71, 0x699A17FF, 0x5664526C, 0xC2B19EE1,
-	0x193602A5, 0x75094C29,
-};
-
 static std::vector<std::vector<uint32_t>> S_BOX =
 {
 	S_BOX_1, S_BOX_2, S_BOX_3, S_BOX_4,
@@ -222,10 +214,10 @@ blowfish_encrypter::blowfish_encrypter(const std::string& key)
 	_generate_keys();
 }
 
-uint32_t blowfish_encrypter::blowfish_func(uint32_t x)
+uint32_t blowfish_encrypter::blowfish_func(uint32_t x) const
 {
-	uint32_t h = S_BOX[0][x >> 24] + S_BOX[1][x >> 16 & 0xff];
-	return (h ^ S_BOX[2][x >> 8 & 0xff]) + S_BOX[3][x & 0xff];
+	uint32_t h = _generated_boxes[0][x >> 24] + _generated_boxes[1][x >> 16 & 0xff];
+	return (h ^ _generated_boxes[2][x >> 8 & 0xff]) + _generated_boxes[3][x & 0xff];
 }
 
 std::string blowfish_encrypter::encrypt(const std::string& message) const
@@ -267,14 +259,30 @@ std::string blowfish_encrypter::_try_remove_padding(const std::string& message)
 	return message;
 }
 
-std::string blowfish_encrypter::_check_key(const std::string& key)
+std::vector<uint32_t> blowfish_encrypter::_check_key(const std::string& key)
 {
-	if (key.size() < KEY_LENGTH)
+	if (key.size() % KEY_LENGTH != 0)
 	{
 		throw invalid_key();
 	}
 
-	return key.substr(0, KEY_LENGTH);
+	std::vector<uint32_t> result_key;
+	result_key.reserve(key.size() / KEY_LENGTH);
+
+	for (uint64_t i = 0; i < key.size(); i += KEY_LENGTH)
+	{
+		uint32_t result_subkey = 0;
+
+		for (uint64_t j = 0; j < KEY_LENGTH; ++j)
+		{
+			uint64_t current_byte = key[i + j];
+			result_subkey |= current_byte << (KEY_LENGTH - j);
+		}
+
+		result_key.push_back(result_subkey);
+	}
+
+	return result_key;
 }
 
 std::string blowfish_encrypter::_construct_padding_message(const std::string& message)
@@ -283,52 +291,53 @@ std::string blowfish_encrypter::_construct_padding_message(const std::string& me
 	return message + std::string(padding_len, padding_len);
 }
 
-std::tuple<uint32_t, uint32_t> blowfish_encrypter::_encrypt(uint32_t left_block, uint32_t right_block)
+std::tuple<uint32_t, uint32_t> blowfish_encrypter::_encrypt(uint32_t left_block, uint32_t right_block) const
 {
 	for (uint64_t i = 0; i < ROUNDS_COUNT; i += 2) {
-		left_block ^= P[i];
+		left_block ^= _generated_keys[i];
 		right_block ^= blowfish_func(left_block);
-		right_block ^= P[i + 1L];
+		right_block ^= _generated_keys[i + 1L];
 		left_block ^= blowfish_func(right_block);
 	}
 
-	left_block ^= P[16];
-	right_block ^= P[17];
+	left_block ^= _generated_keys[16];
+	right_block ^= _generated_keys[17];
 
 	return { right_block, left_block };
 }
 
-std::tuple<uint32_t, uint32_t> blowfish_encrypter::_decrypt(uint32_t left_block, uint32_t right_block)
+std::tuple<uint32_t, uint32_t> blowfish_encrypter::_decrypt(uint32_t left_block, uint32_t right_block) const
 {
 	for (uint64_t i = 16; i > 0; i -= 2)
 	{
-		left_block ^= P[i + 1L];
+		left_block ^= _generated_keys[i + 1L];
 		right_block ^= blowfish_func(left_block);
-		right_block ^= P[i];
+		right_block ^= _generated_keys[i];
 		left_block ^= blowfish_func(right_block);
 	}
 
-	left_block ^= P[1];
-	right_block ^= P[0];
+	left_block ^= _generated_keys[1];
+	right_block ^= _generated_keys[0];
 
 	return { right_block, left_block };
 }
 
 void blowfish_encrypter::_generate_keys()
 {
-	_generated_keys.reserve(18);
+	_generated_keys = P;
+	_generated_boxes = S_BOX;
 
-	for (uint64_t i = 0; i < _generated_keys.capacity(); ++i)
+	for (uint64_t i = 0; i < _generated_keys.size(); ++i)
 	{
-		P[i] = P[i] ^ KEY_TEMP[i % KEY_TEMP.size()];
+		_generated_keys[i] = P[i] ^ _key[i % _key.size()];
 	}
 
 	uint32_t L = 0, R = 0;
-	for (uint64_t i = 0; i < _generated_keys.capacity(); i += 2)
+	for (uint64_t i = 0; i < _generated_keys.size(); i += 2)
 	{
 		std::tie(L, R) = _encrypt(L, R);
-		P[i] = L; 
-		P[i + 1L] = R;
+		_generated_keys[i] = L;
+		_generated_keys[i + 1L] = R;
 	}
 
 	for (uint64_t i = 0; i < 4; ++i)
@@ -336,8 +345,8 @@ void blowfish_encrypter::_generate_keys()
 		for (uint64_t j = 0; j < 256; j += 2)
 		{
 			std::tie(L, R) = _encrypt(L, R);
-			S_BOX[i][j] = L; 
-			S_BOX[i][j + 1L] = R;
+			_generated_boxes[i][j] = L;
+			_generated_boxes[i][j + 1L] = R;
 		}
 	}	
 }
@@ -389,7 +398,7 @@ std::string blowfish_encrypter::_internal_run(const std::string& message, _e_act
 
 const char* blowfish_encrypter::invalid_key::what() const throw ()
 {
-	return "Invalid key! Key should be no less than 8 chars";
+	return "Invalid key! Key should be no less than 4 chars";
 }
 
 const char* blowfish_encrypter::invalid_action::what() const throw ()

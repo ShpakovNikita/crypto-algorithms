@@ -35,18 +35,19 @@ private:
 
 	static std::vector<std::string> _build_message_blocks(const std::string& message);
 	static std::string _try_remove_padding(const std::string& message);
-	static std::string _check_key(const std::string& key);
+	static std::vector<uint32_t> _check_key(const std::string& key);
 	static std::string _construct_padding_message(const std::string& message);
 
-	static std::tuple<uint32_t, uint32_t> _encrypt(uint32_t left_block, uint32_t right_block);
-	static std::tuple<uint32_t, uint32_t> _decrypt(uint32_t left_block, uint32_t right_block);
+	uint32_t blowfish_func(uint32_t x) const;
 
-	static uint32_t blowfish_func(uint32_t x);
+	std::tuple<uint32_t, uint32_t> _encrypt(uint32_t left_block, uint32_t right_block) const;
+	std::tuple<uint32_t, uint32_t> _decrypt(uint32_t left_block, uint32_t right_block) const;
 
 	std::string _internal_run(const std::string& message, _e_action action) const;
 
 	void _generate_keys();
 
-	std::string _key;
+	std::vector<uint32_t> _key;
 	std::vector<uint32_t> _generated_keys;
+	std::vector<std::vector<uint32_t>> _generated_boxes;
 };
