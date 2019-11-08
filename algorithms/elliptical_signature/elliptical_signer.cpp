@@ -12,7 +12,6 @@
 #include "elliptical_point.hpp"
 
 constexpr uint64_t KEY_ALIGN = 64;
-constexpr uint64_t HASH_EXPECTED_SIZE = 256;
 
 const std::string DEFAULT_HASH_KEY = "12345678900987654321qwertyuiopas";
 
